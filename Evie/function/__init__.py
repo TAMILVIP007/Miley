@@ -12,10 +12,7 @@ from captcha.image import ImageCaptcha
 async def is_admin(event, user):
     try:
         sed = await event.client.get_permissions(event.chat_id, user)
-        if sed.is_admin:
-            is_mod = True
-        else:
-            is_mod = False
+        is_mod = bool(sed.is_admin)
     except:
         is_mod = False
     return is_mod
@@ -95,17 +92,11 @@ async def can_ban_users(message):
 
 
 def sudo(user_id):
-  if sql.is_sudo(int(user_id)):
-   return True
-  else:
-   return False
+    return bool(sql.is_sudo(int(user_id)))
 
 def bio(iid):
- k = iid
- if is_bio(k):
-  return True
- else:
-  return False
+    k = iid
+    return bool(is_bio(k))
 
 async def get_user(event):
     """ Get the user from argument or replied message. """
@@ -188,9 +179,10 @@ async def cb_progress(current, total, cb, start, type_of_ps, file_name=None):
         estimated_total_time = elapsed_time + time_to_completion
         progress_str = "{0}{1} {2}%\n".format(
             "".join(["▰" for i in range(math.floor(percentage / 10))]),
-            "".join(["▱" for i in range(10 - math.floor(percentage / 10))]),
+            "".join(["▱" for _ in range(10 - math.floor(percentage / 10))]),
             round(percentage, 2),
         )
+
         tmp = progress_str + "{0} of {1}\nETA: {2}".format(
             humanbytes(current), humanbytes(total), time_formatter(estimated_total_time)
         )
@@ -202,13 +194,10 @@ alphabet_uppercase = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O
 def gen_captcha(captcha_string_size=10):
     captcha_string_list = []
     base_char = alphabet_lowercase + alphabet_uppercase + number_list
-    for i in range(captcha_string_size):
+    for _ in range(captcha_string_size):
         char = random.choice(base_char)
         captcha_string_list.append(char)
-    captcha_string = '' 
-    for item in captcha_string_list:
-        captcha_string += str(item)
-    return captcha_string
+    return ''.join(str(item) for item in captcha_string_list)
 
 
 def get_readable_time(seconds: int) -> str:
@@ -219,10 +208,7 @@ def get_readable_time(seconds: int) -> str:
 
     while count < 4:
         count += 1
-        if count < 3:
-            remainder, result = divmod(seconds, 60)
-        else:
-            remainder, result = divmod(seconds, 24)
+        remainder, result = divmod(seconds, 60) if count < 3 else divmod(seconds, 24)
         if seconds == 0 and remainder == 0:
             break
         time_list.append(int(result))

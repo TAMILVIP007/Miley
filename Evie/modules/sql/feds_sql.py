@@ -141,35 +141,36 @@ def get_user_fban(fed_id, user_id):
 
 
 def get_user_admin_fed_name(user_id):
-    user_feds = []
-    for f in FEDERATION_BYFEDID:
-        if int(user_id) in int(eval(FEDERATION_BYFEDID[f]["fusers"])["owner"]):
-            user_feds.append(FEDERATION_BYFEDID[f]["fname"])
-    return user_feds
+    return [
+        FEDERATION_BYFEDID[f]["fname"]
+        for f in FEDERATION_BYFEDID
+        if int(user_id) in int(eval(FEDERATION_BYFEDID[f]["fusers"])["owner"])
+    ]
 
 
 def get_user_owner_fed_name(user_id):
-    user_feds = []
-    for f in FEDERATION_BYFEDID:
-        if int(user_id) == int(eval(FEDERATION_BYFEDID[f]["fusers"])["owner"]):
-            user_feds.append(FEDERATION_BYFEDID[f]["fname"])
-    return user_feds
+    return [
+        FEDERATION_BYFEDID[f]["fname"]
+        for f in FEDERATION_BYFEDID
+        if int(user_id) == int(eval(FEDERATION_BYFEDID[f]["fusers"])["owner"])
+    ]
 
 
 def get_user_admin_fed_full(user_id):
-    user_feds = []
-    for f in FEDERATION_BYFEDID:
-        if int(user_id) in eval(eval(FEDERATION_BYFEDID[f]["fusers"])["members"]):
-            user_feds.append({"fed_id": f, "fed": FEDERATION_BYFEDID[f]})
-    return user_feds
+    return [
+        {"fed_id": f, "fed": FEDERATION_BYFEDID[f]}
+        for f in FEDERATION_BYFEDID
+        if int(user_id)
+        in eval(eval(FEDERATION_BYFEDID[f]["fusers"])["members"])
+    ]
 
 
 def get_user_owner_fed_full(user_id):
-    user_feds = []
-    for f in FEDERATION_BYFEDID:
-        if int(user_id) == int(eval(FEDERATION_BYFEDID[f]["fusers"])["owner"]):
-            user_feds.append({"fed_id": f, "fed": FEDERATION_BYFEDID[f]})
-    return user_feds
+    return [
+        {"fed_id": f, "fed": FEDERATION_BYFEDID[f]}
+        for f in FEDERATION_BYFEDID
+        if int(user_id) == int(eval(FEDERATION_BYFEDID[f]["fusers"])["owner"])
+    ]
 
 
 def get_user_fbanlist(user_id):
@@ -178,7 +179,7 @@ def get_user_fbanlist(user_id):
     fedname = []
     for x in banlist:
         if banlist[x].get(user_id):
-            if user_name == "":
+            if not user_name:
                 user_name = banlist[x][user_id].get("first_name")
             fedname.append([x, banlist[x][user_id].get("reason")])
     return user_name, fedname
@@ -237,39 +238,30 @@ def del_fed(fed_id):
         FEDERATION_BYNAME.pop(fed_name)
         if FEDERATION_CHATS_BYID.get(fed_id):
             for x in FEDERATION_CHATS_BYID[fed_id]:
-                delchats = SESSION.query(ChatF).get(str(x))
-                if delchats:
+                if delchats := SESSION.query(ChatF).get(str(x)):
                     SESSION.delete(delchats)
                     SESSION.commit()
                 FEDERATION_CHATS.pop(x)
             FEDERATION_CHATS_BYID.pop(fed_id)
-        # Delete fedban users
-        getall = FEDERATION_BANNED_USERID.get(fed_id)
-        if getall:
+        if getall := FEDERATION_BANNED_USERID.get(fed_id):
             for x in getall:
-                banlist = SESSION.query(BansF).get((fed_id, str(x)))
-                if banlist:
+                if banlist := SESSION.query(BansF).get((fed_id, str(x))):
                     SESSION.delete(banlist)
                     SESSION.commit()
         if FEDERATION_BANNED_USERID.get(fed_id):
             FEDERATION_BANNED_USERID.pop(fed_id)
         if FEDERATION_BANNED_FULL.get(fed_id):
             FEDERATION_BANNED_FULL.pop(fed_id)
-        # Delete fedsubs
-        getall = MYFEDS_SUBSCRIBER.get(fed_id)
-        if getall:
+        if getall := MYFEDS_SUBSCRIBER.get(fed_id):
             for x in getall:
-                getsubs = SESSION.query(FedSubs).get((fed_id, str(x)))
-                if getsubs:
+                if getsubs := SESSION.query(FedSubs).get((fed_id, str(x))):
                     SESSION.delete(getsubs)
                     SESSION.commit()
         if FEDS_SUBSCRIBER.get(fed_id):
             FEDS_SUBSCRIBER.pop(fed_id)
         if MYFEDS_SUBSCRIBER.get(fed_id):
             MYFEDS_SUBSCRIBER.pop(fed_id)
-        # Delete from database
-        curr = SESSION.query(Federations).get(fed_id)
-        if curr:
+        if curr := SESSION.query(Federations).get(fed_id):
             SESSION.delete(curr)
             SESSION.commit()
         return True
@@ -347,18 +339,6 @@ def tr_fed(fed_id, user_id):
         SESSION.commit()
         return True
 
-        curr = SESSION.query(UserF).all()
-        result = False
-        for r in curr:
-            if int(r.user_id) == int(user_id):
-                if r.fed_id == fed_id:
-                    SESSION.delete(r)
-                    SESSION.commit()
-                    result = True
-
-        SESSION.close()
-        return result
-
 
 
 
@@ -432,18 +412,6 @@ def user_demote_fed(fed_id, user_id):
         SESSION.merge(fed)
         SESSION.commit()
         return True
-
-        curr = SESSION.query(UserF).all()
-        result = False
-        for r in curr:
-            if int(r.user_id) == int(user_id):
-                if r.fed_id == fed_id:
-                    SESSION.delete(r)
-                    SESSION.commit()
-                    result = True
-
-        SESSION.close()
-        return result
 
 
 def user_join_fed(fed_id, user_id):
@@ -525,8 +493,7 @@ def all_fed_users(fed_id):
 def all_fed_members(fed_id):
     with FEDS_LOCK:
         getfed = FEDERATION_BYFEDID.get(str(fed_id))
-        fed_admins = eval(eval(getfed["fusers"])["members"])
-        return fed_admins
+        return eval(eval(getfed["fusers"])["members"])
 
 
 def set_frules(fed_id, rules):
@@ -554,17 +521,15 @@ def set_frules(fed_id, rules):
 
 def get_frules(fed_id):
     with FEDS_LOCK:
-        rules = FEDERATION_BYFEDID[str(fed_id)]["frules"]
-        return rules
+        return FEDERATION_BYFEDID[str(fed_id)]["frules"]
 
 
 def fban_user(fed_id, user_id, first_name, last_name, user_name, reason, time):
     with FEDS_LOCK:
         r = SESSION.query(BansF).all()
         for I in r:
-            if I.fed_id == fed_id:
-                if int(I.user_id) == int(user_id):
-                    SESSION.delete(I)
+            if I.fed_id == fed_id and int(I.user_id) == int(user_id):
+                SESSION.delete(I)
 
         r = BansF(
             str(fed_id), str(user_id), first_name, last_name, user_name, reason, time
@@ -590,58 +555,55 @@ def multi_fban_user(
     multi_user_name,
     multi_reason,
 ):
-    if True:  # with FEDS_LOCK:
-        counter = 0
-        time = 0
-        for x in range(len(multi_fed_id)):
-            fed_id = multi_fed_id[x]
-            user_id = multi_user_id[x]
-            first_name = multi_first_name[x]
-            last_name = multi_last_name[x]
-            user_name = multi_user_name[x]
-            reason = multi_reason[x]
-            r = SESSION.query(BansF).all()
-            for I in r:
-                if I.fed_id == fed_id:
-                    if int(I.user_id) == int(user_id):
-                        SESSION.delete(I)
+    counter = 0
+    time = 0
+    for x in range(len(multi_fed_id)):
+        fed_id = multi_fed_id[x]
+        user_id = multi_user_id[x]
+        first_name = multi_first_name[x]
+        last_name = multi_last_name[x]
+        user_name = multi_user_name[x]
+        reason = multi_reason[x]
+        r = SESSION.query(BansF).all()
+        for I in r:
+            if I.fed_id == fed_id and int(I.user_id) == int(user_id):
+                SESSION.delete(I)
 
-            r = BansF(
-                str(fed_id),
-                str(user_id),
-                first_name,
-                last_name,
-                user_name,
-                reason,
-                time,
-            )
+        r = BansF(
+            str(fed_id),
+            str(user_id),
+            first_name,
+            last_name,
+            user_name,
+            reason,
+            time,
+        )
 
-            SESSION.add(r)
-            counter += 1
-            if str(str(counter)[-2:]) == "00":
-                print(user_id)
-                print(first_name)
-                print(reason)
-                print(counter)
-        try:
-            SESSION.commit()
-        except:
-            SESSION.rollback()
-            return False
-        finally:
-            SESSION.commit()
-        __load_all_feds_banned()
-        print("Done")
-        return counter
+        SESSION.add(r)
+        counter += 1
+        if str(str(counter)[-2:]) == "00":
+            print(user_id)
+            print(first_name)
+            print(reason)
+            print(counter)
+    try:
+        SESSION.commit()
+    except:
+        SESSION.rollback()
+        return False
+    finally:
+        SESSION.commit()
+    __load_all_feds_banned()
+    print("Done")
+    return counter
 
 
 def un_fban_user(fed_id, user_id):
     with FEDS_LOCK:
         r = SESSION.query(BansF).all()
         for I in r:
-            if I.fed_id == fed_id:
-                if int(I.user_id) == int(user_id):
-                    SESSION.delete(I)
+            if I.fed_id == fed_id and int(I.user_id) == int(user_id):
+                SESSION.delete(I)
         try:
             SESSION.commit()
         except:
@@ -661,10 +623,9 @@ def get_fban_user(fed_id, user_id):
         r = SESSION.query(BansF).all()
         reason = None
         for I in r:
-            if I.fed_id == fed_id:
-                if int(I.user_id) == int(user_id):
-                    reason = I.reason
-                    time = I.time
+            if I.fed_id == fed_id and int(I.user_id) == int(user_id):
+                reason = I.reason
+                time = I.time
         return True, reason, time
     return False, None, None
 
@@ -681,8 +642,7 @@ def get_all_fban_users_target(fed_id, user_id):
     if list_fbanned is None:
         FEDERATION_BANNED_FULL[fed_id] = []
         return False
-    getuser = list_fbanned[str(user_id)]
-    return getuser
+    return list_fbanned[str(user_id)]
 
 
 def get_all_fban_users_global():
@@ -696,10 +656,7 @@ def get_all_fban_users_global():
 
 def get_all_feds_users_global():
     list_fed = FEDERATION_BYFEDID
-    total = []
-    for x in list(FEDERATION_BYFEDID):
-        total.append(FEDERATION_BYFEDID[x])
-    return total
+    return [FEDERATION_BYFEDID[x] for x in list(FEDERATION_BYFEDID)]
 
 
 def search_fed_by_id(fed_id):
@@ -707,12 +664,6 @@ def search_fed_by_id(fed_id):
     if get is None:
         return False
     return get
-    result = False
-    for Q in curr:
-        if Q.fed_id == fed_id:
-            result = Q.fed_id
-
-    return result
 
 
 def user_feds_report(user_id: int) -> bool:
@@ -772,8 +723,7 @@ def set_fed_log(fed_id, chat_id):
 
 
 def subs_fed(fed_id, my_fed):
-    check = get_spec_subs(fed_id, my_fed)
-    if check:
+    if check := get_spec_subs(fed_id, my_fed):
         return False
     with FEDS_SUBSCRIBER_LOCK:
         subsfed = FedSubs(fed_id, my_fed)
@@ -802,8 +752,7 @@ def add_sub(my_fed, fed_id):
 
 def unsubs_fed(fed_id, my_fed):
     with FEDS_SUBSCRIBER_LOCK:
-        getsubs = SESSION.query(FedSubs).get((fed_id, my_fed))
-        if getsubs:
+        if getsubs := SESSION.query(FedSubs).get((fed_id, my_fed)):
             if my_fed in FEDS_SUBSCRIBER.get(fed_id, set()):  # sanity check
                 FEDS_SUBSCRIBER.get(fed_id, set()).remove(my_fed)
 
@@ -816,17 +765,16 @@ def unsubs_fed(fed_id, my_fed):
 
 def rem_sub(my_fed, fed_id):
   
-        sox = SESSION.query(FedSubs).get((my_fed, fed_id))
-        if sox:
-            if fed_id in MYFEDS_SUBSCRIBER.get(my_fed, set()):  # sanity check
-                MYFEDS_SUBSCRIBER.get(my_fed, set()).remove(fed_id)
+    if sox := SESSION.query(FedSubs).get((my_fed, fed_id)):
+        if fed_id in MYFEDS_SUBSCRIBER.get(my_fed, set()):  # sanity check
+            MYFEDS_SUBSCRIBER.get(my_fed, set()).remove(fed_id)
 
-            SESSION.delete(sox)
-            SESSION.commit()
-            return True
+        SESSION.delete(sox)
+        SESSION.commit()
+        return True
 
-        SESSION.close()
-        return False
+    SESSION.close()
+    return False
 
 def get_all_subs(fed_id):
     return FEDS_SUBSCRIBER.get(fed_id, set())
@@ -959,8 +907,9 @@ def __load_feds_subscriber():
             try:
                 MYFEDS_SUBSCRIBER[x.fed_subs] += [x.fed_id]
             except KeyError:
-                getsubs = SESSION.query(FedSubs).get((x.fed_id, x.fed_subs))
-                if getsubs:
+                if getsubs := SESSION.query(FedSubs).get(
+                    (x.fed_id, x.fed_subs)
+                ):
                     SESSION.delete(getsubs)
                     SESSION.commit()
 

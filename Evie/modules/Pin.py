@@ -70,131 +70,133 @@ async def start_again(event):
 
 @register(pattern="^/pin(?: |$)(.*)")
 async def pin(msg):
- try:
-    if msg.is_group:
-      if not msg.sender_id == OWNER_ID:
-        if not await is_register_admin(msg.input_chat, msg.sender_id):
-           await msg.reply("Only admins can execute this command!")
-           return
-        
-    else:
-        return
-    if not await can_pin_msg(message=msg):
-            await msg.reply("You are missing the following rights to use this command:CanPinMessages")
+    try:
+        if not msg.is_group:
             return
-    to_pin = msg.reply_to_msg_id
-    if not to_pin:
-        await msg.reply("You need to reply to a message to pin it!")
-        return
-    k = await msg.get_reply_message()
-    options = msg.pattern_match.group(1)
-    chat = f'{msg.chat_id}'
-    lik = chat.replace("-100", "")
-    is_silent = True
-    if options.lower() == "loud":
-        is_silent = False
-    try:
-        await tbot(UpdatePinnedMessageRequest(msg.to_id, to_pin, is_silent))
-    except Exception:
-        await msg.reply("Failed to pin.")
-        return
-    try:
-       await msg.reply(f"I have pinned [this message](http://t.me/{event.chat.username}/{k.id}).")
-    except:
-       pass
- except Exception as e:
-    await msg.reply(f'{e}')
+        if msg.sender_id != OWNER_ID and not await is_register_admin(
+            msg.input_chat, msg.sender_id
+        ):
+            await msg.reply("Only admins can execute this command!")
+            return
+
+        if not await can_pin_msg(message=msg):
+                await msg.reply("You are missing the following rights to use this command:CanPinMessages")
+                return
+        to_pin = msg.reply_to_msg_id
+        if not to_pin:
+            await msg.reply("You need to reply to a message to pin it!")
+            return
+        k = await msg.get_reply_message()
+        options = msg.pattern_match.group(1)
+        chat = f'{msg.chat_id}'
+        lik = chat.replace("-100", "")
+        is_silent = options.lower() != "loud"
+        try:
+            await tbot(UpdatePinnedMessageRequest(msg.to_id, to_pin, is_silent))
+        except Exception:
+            await msg.reply("Failed to pin.")
+            return
+        try:
+           await msg.reply(f"I have pinned [this message](http://t.me/{event.chat.username}/{k.id}).")
+        except:
+           pass
+    except Exception as e:
+       await msg.reply(f'{e}')
 
 @register(pattern="^/antichannelpin ?(.*)")
 async def kr(event):
- args = event.pattern_match.group(1)
- if args:
-  if not await is_admin(event, event.sender_id):
-     return await event.reply("You need to be an admin to do this!")
-  if args == 'on' or args == 'enable':
-    if not is_chat(event.chat_id):
-              await event.reply("**Enabled** anti channel pins. Automatic pins from a channel will now be replaced with the previous pin.")
-              return add_chat(event.chat_id)
-    else:
-       return await event.reply("**Enabled** anti channel pins. Automatic pins from a channel will now be replaced with the previous pin.")
-  elif args == 'off' or args == 'disable':
-    if is_chat(event.chat_id):
-             await event.reply("**Disabled** anti channel pins. Automatic pins from a channel will not be removed.")
-             return rmchat(event.chat_id)
-    else:
-       return await event.reply("**Disabled** anti channel pins. Automatic pins from a channel will not be removed.")
- else:
-    if is_chat(event.chat_id):
-      return await event.reply(f"Anti channel pins are currently **enabled** in {event.chat.title}.")
-    else:
-      return await event.reply(f"Anti channel pins are currently **disabled** in {event.chat.title}.")
+    if not (args := event.pattern_match.group(1)):
+        return (
+            await event.reply(
+                f"Anti channel pins are currently **enabled** in {event.chat.title}."
+            )
+            if is_chat(event.chat_id)
+            else await event.reply(
+                f"Anti channel pins are currently **disabled** in {event.chat.title}."
+            )
+        )
+
+    if not await is_admin(event, event.sender_id):
+       return await event.reply("You need to be an admin to do this!")
+    if args in ['on', 'enable']:
+        if is_chat(event.chat_id):
+            return await event.reply("**Enabled** anti channel pins. Automatic pins from a channel will now be replaced with the previous pin.")
+        await event.reply("**Enabled** anti channel pins. Automatic pins from a channel will now be replaced with the previous pin.")
+        return add_chat(event.chat_id)
+    elif args in ['off', 'disable']:
+        if not is_chat(event.chat_id):
+            return await event.reply("**Disabled** anti channel pins. Automatic pins from a channel will not be removed.")
+        await event.reply("**Disabled** anti channel pins. Automatic pins from a channel will not be removed.")
+        return rmchat(event.chat_id)
 
 @register(pattern="^/cleanlinked ?(.*)")
 async def kr(event):
- args = event.pattern_match.group(1)
- if args:
-  if not await is_admin(event, event.sender_id):
-     return await event.reply("You need to be an admin to do this!")
-  if args == 'on' or args == 'enable':
+    if not (args := event.pattern_match.group(1)):
+        return (
+            await event.reply(
+                f"Linked channel post deletion is currently **enabled** in {event.chat.title}. Messages sent from the linked channel will be deleted."
+            )
+            if is_pin(event.chat_id)
+            else await event.reply(
+                f"Linked channel post deletion is currently **disabled** in {event.chat.title}."
+            )
+        )
+
+    if not await is_admin(event, event.sender_id):
+       return await event.reply("You need to be an admin to do this!")
+    if args in ['on', 'enable']:
+        if is_pin(event.chat_id):
+            return await event.reply(f"**Enabled** linked channel post deletion in {event.chat.title}. Messages sent from the linked channel will be deleted.")
+        await event.reply(f"**Enabled** linked channel post deletion in {event.chat.title}. Messages sent from the linked channel will be deleted.")
+        return add_pin(event.chat_id)
+    elif args in ['off', 'disable']:
+        if not is_pin(event.chat_id):
+            return await event.reply(f"**Disabled** linked channel post deletion in {event.chat.title}.")
+        await event.reply(f"**Disabled** linked channel post deletion in {event.chat.title}.")
+        return rmpin(event.chat_id)
+
+@tbot.on(events.NewMessage(pattern=None))
+async def pk(event):
+    if event.is_private:
+      return
+    if not event.fwd_from:
+     return
     if not is_pin(event.chat_id):
-              await event.reply(f"**Enabled** linked channel post deletion in {event.chat.title}. Messages sent from the linked channel will be deleted.")
-              return add_pin(event.chat_id)
-    else:
-       return await event.reply(f"**Enabled** linked channel post deletion in {event.chat.title}. Messages sent from the linked channel will be deleted.")
-  elif args == 'off' or args == 'disable':
-    if is_pin(event.chat_id):
-             await event.reply(f"**Disabled** linked channel post deletion in {event.chat.title}.")
-             return rmpin(event.chat_id)
-    else:
-       return await event.reply(f"**Disabled** linked channel post deletion in {event.chat.title}.")
- else:
-    if is_pin(event.chat_id):
-      return await event.reply(f"Linked channel post deletion is currently **enabled** in {event.chat.title}. Messages sent from the linked channel will be deleted.")
-    else:
-      return await event.reply(f"Linked channel post deletion is currently **disabled** in {event.chat.title}.")
-
-@tbot.on(events.NewMessage(pattern=None))
-async def pk(event):
- if event.is_private:
-   return
- if not event.fwd_from:
-  return
- if not is_pin(event.chat_id):
-   return
- from telethon import functions, types
- result = await tbot(functions.channels.GetFullChannelRequest(
-        channel=event.chat.username
-    ))
- s = result.chats
- for x in s:
-   if not x.username == event.chat.username:
-     id = x.id
- if not id == None:
-  cid = event.fwd_from.from_id.channel_id
-  if cid == id:
-   await event.delete()
+      return
+    from telethon import functions, types
+    result = await tbot(functions.channels.GetFullChannelRequest(
+           channel=event.chat.username
+       ))
+    s = result.chats
+    for x in s:
+        if x.username != event.chat.username:
+            id = x.id
+    if not id is None:
+        cid = event.fwd_from.from_id.channel_id
+        if cid == id:
+         await event.delete()
 
 
 @tbot.on(events.NewMessage(pattern=None))
 async def pk(event):
- if event.is_private:
-   return
- if not is_chat(event.chat_id):
-   return
- if not event.fwd_from:
-  return
- from telethon import functions, types
- result = await tbot(functions.channels.GetFullChannelRequest(
-        channel=event.chat.username
-    ))
- s = result.chats
- for x in s:
-   if not x.username == event.chat.username:
-     id = x.id
- if not id == None:
-  cid = event.fwd_from.from_id.channel_id
-  if cid == id:
-   await tbot.unpin_message(event.chat_id, event.message.id)
+    if event.is_private:
+      return
+    if not is_chat(event.chat_id):
+      return
+    if not event.fwd_from:
+     return
+    from telethon import functions, types
+    result = await tbot(functions.channels.GetFullChannelRequest(
+           channel=event.chat.username
+       ))
+    s = result.chats
+    for x in s:
+        if x.username != event.chat.username:
+            id = x.id
+    if not id is None:
+        cid = event.fwd_from.from_id.channel_id
+        if cid == id:
+         await tbot.unpin_message(event.chat_id, event.message.id)
 
 __help__ = """
 All the pin related commands can be found here; keep your chat up to date on the latest news with a simple pinned message!

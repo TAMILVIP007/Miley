@@ -42,106 +42,100 @@ async def kick_restricted_after_delay(delay, event, user_id):
 
 @tbot.on(events.ChatAction())  # pylint:disable=E0602
 async def _(event):
-  if not event.user_joined:
-          return
-  user_id = event.user_id
-  chats = captcha.find({})
-  type = mode = None
-  time = 0
-  for c in chats:
-       if event.chat_id == c["id"]:
-          type = c["type"]
-          time = c["time"]
-          mode = c["mode"]
-  if mode == None or mode == "off":
-      return
-  if not type == None:
-   if type == "multibutton":
-      return await multibutton(event, time)
-   elif type == "math":
-      return await math(event, time)
-   elif type == "button":
-      return await button(event, time)
-   elif type == "text":
-      return await text(event, time)
-  else:
-    return
+    if not event.user_joined:
+            return
+    user_id = event.user_id
+    chats = captcha.find({})
+    type = mode = None
+    time = 0
+    for c in chats:
+         if event.chat_id == c["id"]:
+            type = c["type"]
+            time = c["time"]
+            mode = c["mode"]
+    if mode is None or mode == "off":
+        return
+    if type is None:
+        return
+    if type == "multibutton":
+       return await multibutton(event, time)
+    elif type == "math":
+       return await math(event, time)
+    elif type == "button":
+       return await button(event, time)
+    elif type == "text":
+       return await text(event, time)
 
 """Multi button captcha"""
 async def multibutton(event, time):
-  user_id = event.user_id
-  a_user = await event.get_user()
-  mention = "[{}](tg://user?id={})".format(a_user.first_name, a_user.id)
-  cws = get_current_welcome_settings(event.chat_id)
-  if cws:
-     wlc = cws.custom_welcome_message
-     if "|" in wlc:
-       wc, options = wlc.split("|")
-       wc = wc.strip()
-     else:
-       wc = wlc
-     a_user = await event.get_user()
-     title = event.chat.title
-     mention = "[{}](tg://user?id={})".format(a_user.first_name, a_user.id)
-     first = a_user.first_name
-     last = a_user.last_name
-     if last:
-         fullname = f"{first} {last}"
-     else:
-         fullname = first
-     userid = a_user.id
-     current_saved_welcome_message = wc
-     text = current_saved_welcome_message.format(
-                                mention=mention,
-                                title=title,
-                                first=first,
-                                last=last,
-                                fullname=fullname,
-                                userid=userid,
-                            )
-     text += "\n\n**Captcha Verification**"
-  else:
-   text = f"Hey {event.user.first_name} Welcome to {event.chat.title}!"
-  text += f"\n\nClick on the button which include this emoji {tick}."
-  keyboard = [
-            Button.inline(
-                f"{random.choice(brain)}",
-                data=f'pep-{a_user.id}'
-            ),
-            Button.inline(
-                f"{tick}",
-                data=f'pro-{a_user.id}'
-            ),
-            Button.inline(
-                f"{random.choice(wrong)}",
-                data=f"fk-{a_user.id}"
-            ),
-            Button.inline(
-                f"{robot}",
-                data=f'yu-{a_user.id}'
-            )
-        ]
-  shuffle(keyboard)
-  button_message = await event.reply(
-            text,
-            buttons=keyboard
-        )
-  WELCOME_DELAY_KICK_SEC = time
-  try:
-    await tbot(EditBannedRequest(event.chat_id, user_id, MUTE_RIGHTS))
-  except:
-    pass
-  if time:
-   if not time == 0:
-    asyncio.create_task(kick_restricted_after_delay(
-            WELCOME_DELAY_KICK_SEC, event, user_id))
-    await asyncio.sleep(0.5)
+    user_id = event.user_id
+    a_user = await event.get_user()
+    mention = "[{}](tg://user?id={})".format(a_user.first_name, a_user.id)
+    if cws := get_current_welcome_settings(event.chat_id):
+        wlc = cws.custom_welcome_message
+        if "|" in wlc:
+          wc, options = wlc.split("|")
+          wc = wc.strip()
+        else:
+          wc = wlc
+        a_user = await event.get_user()
+        title = event.chat.title
+        mention = "[{}](tg://user?id={})".format(a_user.first_name, a_user.id)
+        first = a_user.first_name
+        last = a_user.last_name
+        fullname = f"{first} {last}" if last else first
+        userid = a_user.id
+        current_saved_welcome_message = wc
+        text = current_saved_welcome_message.format(
+                                   mention=mention,
+                                   title=title,
+                                   first=first,
+                                   last=last,
+                                   fullname=fullname,
+                                   userid=userid,
+                               )
+        text += "\n\n**Captcha Verification**"
+    else:
+        text = f"Hey {event.user.first_name} Welcome to {event.chat.title}!"
+    text += f"\n\nClick on the button which include this emoji {tick}."
+    keyboard = [
+              Button.inline(
+                  f"{random.choice(brain)}",
+                  data=f'pep-{a_user.id}'
+              ),
+              Button.inline(
+                  f"{tick}",
+                  data=f'pro-{a_user.id}'
+              ),
+              Button.inline(
+                  f"{random.choice(wrong)}",
+                  data=f"fk-{a_user.id}"
+              ),
+              Button.inline(
+                  f"{robot}",
+                  data=f'yu-{a_user.id}'
+              )
+          ]
+    shuffle(keyboard)
+    button_message = await event.reply(
+              text,
+              buttons=keyboard
+          )
+    WELCOME_DELAY_KICK_SEC = time
+    try:
+      await tbot(EditBannedRequest(event.chat_id, user_id, MUTE_RIGHTS))
+    except:
+      pass
+    if time and time != 0:
+        asyncio.create_task(kick_restricted_after_delay(
+                WELCOME_DELAY_KICK_SEC, event, user_id))
+        await asyncio.sleep(0.5)
 
 @tbot.on(events.CallbackQuery(pattern=r"fk-(\d+)"))
 async def cbot(event):
     user_id = int(event.pattern_match.group(1))
     chat_id = event.chat_id
-    if not event.sender_id == user_id:
+    if event.sender_id != user_id:
         await event.answer("You aren't the person whom should be verified.")
         return
     await event.answer("❌ Wrong Try Again!")
@@ -170,7 +164,7 @@ async def cbot(event):
 async def cbot(event):
     user_id = int(event.pattern_match.group(1))
     chat_id = event.chat_id
-    if not event.sender_id == user_id:
+    if event.sender_id != user_id:
         await event.answer("You aren't the person whom should be verified.")
         return
     await event.answer("❌ Wrong Try Again!")
@@ -199,7 +193,7 @@ async def cbot(event):
 async def cbot(event):
     user_id = int(event.pattern_match.group(1))
     chat_id = event.chat_id
-    if not event.sender_id == user_id:
+    if event.sender_id != user_id:
         await event.answer("You aren't the person whom should be verified.")
         return
     await event.answer("❌ Wrong Try Again!")
@@ -228,7 +222,7 @@ async def cbot(event):
 async def cbot(event):
     user_id = int(event.pattern_match.group(1))
     chat_id = event.chat_id
-    if not event.sender_id == user_id:
+    if event.sender_id != user_id:
         await event.answer("You aren't the person whom should be verified.")
         return
     await event.answer("Verified Successfully ✅")
@@ -237,56 +231,51 @@ async def cbot(event):
 
 """Math captcha"""
 async def math(event, time):
- try:
-  user_id = event.user_id
-  mode = "Click here to prove you're human"
-  chats = cbutton.find({})
-  for c in chats:
-    if event.chat_id == c["id"]:
-       mode = c["mode"]
-  try:
-    await tbot(EditBannedRequest(event.chat_id, user_id, MUTE_RIGHTS))
-  except:
-    pass
-  cws = get_current_welcome_settings(event.chat_id)
-  if cws:
-     wlc = cws.custom_welcome_message
-     if "|" in wlc:
-       wc, options = wlc.split("|")
-       wc = wc.strip()
-     else:
-       wc = wlc
-     a_user = await event.get_user()
-     title = event.chat.title
-     mention = "[{}](tg://user?id={})".format(a_user.first_name, a_user.id)
-     first = a_user.first_name
-     last = a_user.last_name
-     if last:
-         fullname = f"{first} {last}"
-     else:
-         fullname = first
-     userid = a_user.id
-     text = wc.format(
-                                mention=mention,
-                                title=title,
-                                first=first,
-                                last=last,
-                                fullname=fullname,
-                                userid=userid,
-                            )
-     text += "\n\n**Captcha Verification:**"
-  else:
-   text = f"Hey {event.user.first_name} Welcome to {event.chat.title}!"
-  buttons = Button.url(mode, "t.me/MissEvie_Robot?start=math_{}".format(event.chat_id))
-  await event.reply(text, buttons=buttons)
-  WELCOME_DELAY_KICK_SEC = time
-  if time:
-   if not time == 0:
-    asyncio.create_task(kick_restricted_after_delay(
-            WELCOME_DELAY_KICK_SEC, event, user_id))
-    await asyncio.sleep(0.5)
- except Exception as e:
-   await event.reply(f"{e}")
+    try:
+        user_id = event.user_id
+        mode = "Click here to prove you're human"
+        chats = cbutton.find({})
+        for c in chats:
+          if event.chat_id == c["id"]:
+             mode = c["mode"]
+        try:
+          await tbot(EditBannedRequest(event.chat_id, user_id, MUTE_RIGHTS))
+        except:
+          pass
+        if cws := get_current_welcome_settings(event.chat_id):
+            wlc = cws.custom_welcome_message
+            if "|" in wlc:
+              wc, options = wlc.split("|")
+              wc = wc.strip()
+            else:
+              wc = wlc
+            a_user = await event.get_user()
+            title = event.chat.title
+            mention = "[{}](tg://user?id={})".format(a_user.first_name, a_user.id)
+            first = a_user.first_name
+            last = a_user.last_name
+            fullname = f"{first} {last}" if last else first
+            userid = a_user.id
+            text = wc.format(
+                                       mention=mention,
+                                       title=title,
+                                       first=first,
+                                       last=last,
+                                       fullname=fullname,
+                                       userid=userid,
+                                   )
+            text += "\n\n**Captcha Verification:**"
+        else:
+            text = f"Hey {event.user.first_name} Welcome to {event.chat.title}!"
+        buttons = Button.url(mode, "t.me/MissEvie_Robot?start=math_{}".format(event.chat_id))
+        await event.reply(text, buttons=buttons)
+        WELCOME_DELAY_KICK_SEC = time
+        if time and time != 0:
+            asyncio.create_task(kick_restricted_after_delay(
+                    WELCOME_DELAY_KICK_SEC, event, user_id))
+            await asyncio.sleep(0.5)
+    except Exception as e:
+      await event.reply(f"{e}")
 
 @register(pattern="^/start math_(.*)")
 async def h(event):
@@ -594,48 +583,43 @@ async def bak(event):
 
 """Text Captcha"""
 async def text(event, time):
-  user_id = event.user_id
-  mode = "Click here to prove you're human"
-  chats = cbutton.find({})
-  for c in chats:
-    if event.chat_id == c["id"]:
-       mode = c["mode"]
-  try:
-    await tbot(EditBannedRequest(event.chat_id, user_id, MUTE_RIGHTS))
-  except:
-    pass
-  cws = get_current_welcome_settings(event.chat_id)
-  if cws:
-     a_user = await event.get_user()
-     title = event.chat.title
-     mention = "[{}](tg://user?id={})".format(a_user.first_name, a_user.id)
-     first = a_user.first_name
-     last = a_user.last_name
-     if last:
-         fullname = f"{first} {last}"
-     else:
-         fullname = first
-     userid = a_user.id
-     current_saved_welcome_message = cws.custom_welcome_message
-     text = current_saved_welcome_message.format(
-                                mention=mention,
-                                title=title,
-                                first=first,
-                                last=last,
-                                fullname=fullname,
-                                userid=userid,
-                            )
-     text += "\n\n**Captcha Verification**"
-  else:
-   text = f"Hey {event.user.first_name} Welcome to {event.chat.title}!"
-  buttons = Button.url(mode, "t.me/MissEvie_Robot?start=captcha_{}".format(event.chat_id))
-  await event.reply(text, buttons=buttons)
-  WELCOME_DELAY_KICK_SEC = time
-  if time:
-   if not time == 0:
-    asyncio.create_task(kick_restricted_after_delay(
-            WELCOME_DELAY_KICK_SEC, event, user_id))
-    await asyncio.sleep(0.5)
+    user_id = event.user_id
+    mode = "Click here to prove you're human"
+    chats = cbutton.find({})
+    for c in chats:
+      if event.chat_id == c["id"]:
+         mode = c["mode"]
+    try:
+      await tbot(EditBannedRequest(event.chat_id, user_id, MUTE_RIGHTS))
+    except:
+      pass
+    if cws := get_current_welcome_settings(event.chat_id):
+        a_user = await event.get_user()
+        title = event.chat.title
+        mention = "[{}](tg://user?id={})".format(a_user.first_name, a_user.id)
+        first = a_user.first_name
+        last = a_user.last_name
+        fullname = f"{first} {last}" if last else first
+        userid = a_user.id
+        current_saved_welcome_message = cws.custom_welcome_message
+        text = current_saved_welcome_message.format(
+                                   mention=mention,
+                                   title=title,
+                                   first=first,
+                                   last=last,
+                                   fullname=fullname,
+                                   userid=userid,
+                               )
+        text += "\n\n**Captcha Verification**"
+    else:
+        text = f"Hey {event.user.first_name} Welcome to {event.chat.title}!"
+    buttons = Button.url(mode, "t.me/MissEvie_Robot?start=captcha_{}".format(event.chat_id))
+    await event.reply(text, buttons=buttons)
+    WELCOME_DELAY_KICK_SEC = time
+    if time and time != 0:
+        asyncio.create_task(kick_restricted_after_delay(
+                WELCOME_DELAY_KICK_SEC, event, user_id))
+        await asyncio.sleep(0.5)
 
 chance = 3
  
@@ -812,66 +796,60 @@ async def bak(event):
 
 """Button Captcha"""
 async def button(event, time):
-  mode = "Click here to prove you're human"
-  chats = cbutton.find({})
-  for c in chats:
-    if event.chat_id == c["id"]:
-       mode = c["mode"]
-  user_id = event.user_id
-  buttons= Button.inline(mode, data=f"check-bot-{user_id}")
-  cws = get_current_welcome_settings(event.chat_id)
-  if cws:
-     a_user = await event.get_user()
-     title = event.chat.title
-     mention = "[{}](tg://user?id={})".format(a_user.first_name, a_user.id)
-     first = a_user.first_name
-     last = a_user.last_name
-     if last:
-         fullname = f"{first} {last}"
-     else:
-         fullname = first
-     userid = a_user.id
-     current_saved_welcome_message = cws.custom_welcome_message
-     text = current_saved_welcome_message.format(
-                                mention=mention,
-                                title=title,
-                                first=first,
-                                last=last,
-                                fullname=fullname,
-                                userid=userid,
-                            )
-     text += "\n\n**Captcha Verification**:"
-  else:
-   text = f"Hey {event.user.first_name} Welcome to {event.chat.title}!"
-  button_message = await event.reply(
-            text,
-            buttons=buttons
-        )
-  try:
-    await tbot(EditBannedRequest(event.chat_id, user_id, MUTE_RIGHTS))
-  except:
-    pass
-  WELCOME_DELAY_KICK_SEC = time
-  if time:
-   if not time == 0:
-    asyncio.create_task(kick_restricted_after_delay(
-            WELCOME_DELAY_KICK_SEC, event, user_id))
-    await asyncio.sleep(0.5)
+    mode = "Click here to prove you're human"
+    chats = cbutton.find({})
+    for c in chats:
+      if event.chat_id == c["id"]:
+         mode = c["mode"]
+    user_id = event.user_id
+    buttons= Button.inline(mode, data=f"check-bot-{user_id}")
+    if cws := get_current_welcome_settings(event.chat_id):
+        a_user = await event.get_user()
+        title = event.chat.title
+        mention = "[{}](tg://user?id={})".format(a_user.first_name, a_user.id)
+        first = a_user.first_name
+        last = a_user.last_name
+        fullname = f"{first} {last}" if last else first
+        userid = a_user.id
+        current_saved_welcome_message = cws.custom_welcome_message
+        text = current_saved_welcome_message.format(
+                                   mention=mention,
+                                   title=title,
+                                   first=first,
+                                   last=last,
+                                   fullname=fullname,
+                                   userid=userid,
+                               )
+        text += "\n\n**Captcha Verification**:"
+    else:
+        text = f"Hey {event.user.first_name} Welcome to {event.chat.title}!"
+    button_message = await event.reply(
+              text,
+              buttons=buttons
+          )
+    try:
+      await tbot(EditBannedRequest(event.chat_id, user_id, MUTE_RIGHTS))
+    except:
+      pass
+    WELCOME_DELAY_KICK_SEC = time
+    if time and time != 0:
+        asyncio.create_task(kick_restricted_after_delay(
+                WELCOME_DELAY_KICK_SEC, event, user_id))
+        await asyncio.sleep(0.5)
 
 @tbot.on(events.CallbackQuery(pattern=r"check-bot-(\d+)"))
 async def cbot(event):
     user_id = int(event.pattern_match.group(1))
     chat_id = event.chat_id
-    if not event.sender_id == user_id:
+    if event.sender_id != user_id:
         await event.answer("You aren't the person whom should be verified.")
         return
-    if event.sender_id == user_id:
-      try:
-            await tbot(EditBannedRequest(chat_id, user_id, UNMUTE_RIGHTS))
-      except:
-         pass
-      await event.answer("Yep you are verified as a human being")
-      await event.edit(buttons=None)
+    try:
+          await tbot(EditBannedRequest(chat_id, user_id, UNMUTE_RIGHTS))
+    except:
+       pass
+    await event.answer("Yep you are verified as a human being")
+    await event.edit(buttons=None)
 
 
 """Commands Section"""
@@ -882,109 +860,109 @@ typical = ["text", "button", "multibutton", "math"]
 
 @tbot.on(events.NewMessage(pattern="^[!/]captcha ?(.*)"))
 async def c(event):
- if event.is_private:
-  await event.reply("This command is specific to groups")
- if not await is_admin(event, event.sender_id):
-   return await event.reply("Only admins can execute this command!")
- if not await is_admin(event, BOT_ID):
-   return await event.reply("I need to be admin with the right to restrict to enable CAPTCHAs.")
- input = event.pattern_match.group(1)
- chats = captcha.find({})
- mode = None
- time = 0
- type = "button"
- for c in chats:
-    if event.chat_id == c["id"]:
-      mode = c["mode"]
-      type = c["type"]
-      time = c["time"]
- if not input:
-  if mode == None or mode == "off":
-   await event.reply("Welcome CAPTCHAs are currently **disabled** for this chat.")
-  elif mode == "on":
-   await event.reply("Welcome CAPTCHAs are currently **enabled** for this chat.")
- elif input in positive:
-   await event.reply("Enabled welcome CAPTCHAs!")
-   for c in chats:
-    if event.chat_id == c["id"]:
-     return captcha.update_one({"id": event.chat_id}, {"$set": {"mode": "on"}},)
-   captcha.insert_one({"id": event.chat_id, "mode": "on", "type": type, "time": time})
- elif input in negative:
-  await event.reply("Disabled welcome CAPTCHAs!")
-  for c in chats:
-    if event.chat_id == c["id"]:
-     return captcha.update_one({"id": event.chat_id}, {"$set": {"mode": "off"}},)
-  captcha.insert_one({"id": event.chat_id, "mode": "off", "type": type, "time": time})
+    if event.is_private:
+     await event.reply("This command is specific to groups")
+    if not await is_admin(event, event.sender_id):
+      return await event.reply("Only admins can execute this command!")
+    if not await is_admin(event, BOT_ID):
+      return await event.reply("I need to be admin with the right to restrict to enable CAPTCHAs.")
+    input = event.pattern_match.group(1)
+    chats = captcha.find({})
+    mode = None
+    time = 0
+    type = "button"
+    for c in chats:
+       if event.chat_id == c["id"]:
+         mode = c["mode"]
+         type = c["type"]
+         time = c["time"]
+    if not input:
+        if mode is None or mode == "off":
+            await event.reply("Welcome CAPTCHAs are currently **disabled** for this chat.")
+        elif mode == "on":
+         await event.reply("Welcome CAPTCHAs are currently **enabled** for this chat.")
+    elif input in positive:
+      await event.reply("Enabled welcome CAPTCHAs!")
+      for c in chats:
+       if event.chat_id == c["id"]:
+        return captcha.update_one({"id": event.chat_id}, {"$set": {"mode": "on"}},)
+      captcha.insert_one({"id": event.chat_id, "mode": "on", "type": type, "time": time})
+    elif input in negative:
+     await event.reply("Disabled welcome CAPTCHAs!")
+     for c in chats:
+       if event.chat_id == c["id"]:
+        return captcha.update_one({"id": event.chat_id}, {"$set": {"mode": "off"}},)
+     captcha.insert_one({"id": event.chat_id, "mode": "off", "type": type, "time": time})
 
 @tbot.on(events.NewMessage(pattern="^[!/]captchamode ?(.*)"))
 async def cm(event):
- if event.is_private:
-  await event.reply("This command is specific to groups")
- if not await is_admin(event, event.sender_id):
-   return await event.reply("Only admins can execute this command!")
- if not await is_admin(event, BOT_ID):
-   return await event.reply("I need to be admin with the right to restrict to enable CAPTCHAs.")
- input = event.pattern_match.group(1)
- chats = captcha.find({})
- mode = None
- time = 0
- type = None
- for c in chats:
-    if event.chat_id == c["id"]:
-      mode = c["mode"]
-      type = c["type"]
-      time = c["time"]
- if not input:
-  if mode == None or mode == "off":
-   return await event.reply("Welcome CAPTCHAs are currently **disabled** for this chat.")
-  elif type:
-   await event.reply(f"Current CAPTCHA mode is **{type}**.")
- elif input in typical:
-  await event.reply(f"Set CAPTCHAmode to **{input}**!")
-  for c in chats:
-    if event.chat_id == c["id"]:
-     return captcha.update_one({"id": event.chat_id}, {"$set": {"type": input, "mode": "on"}},)
-  captcha.insert_one({"id": event.chat_id, "mode": "on", "type": input, "time": time})
- else:
-  await event.reply("Input not supported, try one of math/button/multibutton/text.")
+    if event.is_private:
+     await event.reply("This command is specific to groups")
+    if not await is_admin(event, event.sender_id):
+      return await event.reply("Only admins can execute this command!")
+    if not await is_admin(event, BOT_ID):
+      return await event.reply("I need to be admin with the right to restrict to enable CAPTCHAs.")
+    input = event.pattern_match.group(1)
+    chats = captcha.find({})
+    mode = None
+    time = 0
+    type = None
+    for c in chats:
+       if event.chat_id == c["id"]:
+         mode = c["mode"]
+         type = c["type"]
+         time = c["time"]
+    if not input:
+        if mode is None or mode == "off":
+            return await event.reply("Welcome CAPTCHAs are currently **disabled** for this chat.")
+        elif type:
+         await event.reply(f"Current CAPTCHA mode is **{type}**.")
+    elif input in typical:
+     await event.reply(f"Set CAPTCHAmode to **{input}**!")
+     for c in chats:
+       if event.chat_id == c["id"]:
+        return captcha.update_one({"id": event.chat_id}, {"$set": {"type": input, "mode": "on"}},)
+     captcha.insert_one({"id": event.chat_id, "mode": "on", "type": input, "time": time})
+    else:
+        await event.reply("Input not supported, try one of math/button/multibutton/text.")
 
 @tbot.on(events.NewMessage(pattern="^[!/]captchakick ?(.*)"))
 async def suk(event):
- if event.is_private:
-  await event.reply("This command is specific to groups")
- if not await is_admin(event, event.sender_id):
-   return await event.reply("Only admins can execute this command!")
- if not await is_admin(event, BOT_ID):
-   return await event.reply("I need to be admin with the right to restrict to enable CAPTCHAs.")
- input = event.pattern_match.group(1)
- chats = captcha.find({})
- mode = None
- time = None
- type = "button"
- for c in chats:
-    if event.chat_id == c["id"]:
-      mode = c["mode"]
-      type = c["type"]
-      time = c["time"]
- if not input:
-  if mode == None or mode == "off":
-   return await event.reply("Welcome CAPTCHAs are currently **disabled** for this chat.")
-  elif time:
-   await event.reply(f"Users who do not complete CAPTCHAs in {time}seconds will get kicked!")
-  elif not time:
-   await event.reply("Auto kick is disabled for this chat")
- elif input in positive:
-  await event.reply(f"**Enabled** CAPTCHA kick.")
-  for c in chats:
-    if event.chat_id == c["id"]:
-     return captcha.update_one({"id": event.chat_id}, {"$set": {"time": time}},)
-  captcha.insert_one({"id": event.chat_id, "mode": "on", "type": type, "time": 300})
- elif input in negative:
-  await event.reply("**Disabled** CAPTCHA Kick")
-  for c in chats:
-    if event.chat_id == c["id"]:
-     return captcha.update_one({"id": event.chat_id}, {"$set": {"time": 0}},)
-  captcha.insert_one({"id": event.chat_id, "mode": "on", "type": type, "time": 0})
+    if event.is_private:
+     await event.reply("This command is specific to groups")
+    if not await is_admin(event, event.sender_id):
+      return await event.reply("Only admins can execute this command!")
+    if not await is_admin(event, BOT_ID):
+      return await event.reply("I need to be admin with the right to restrict to enable CAPTCHAs.")
+    input = event.pattern_match.group(1)
+    chats = captcha.find({})
+    mode = None
+    time = None
+    type = "button"
+    for c in chats:
+       if event.chat_id == c["id"]:
+         mode = c["mode"]
+         type = c["type"]
+         time = c["time"]
+    if not input:
+        if mode is None or mode == "off":
+            return await event.reply("Welcome CAPTCHAs are currently **disabled** for this chat.")
+        elif time:
+         await event.reply(f"Users who do not complete CAPTCHAs in {time}seconds will get kicked!")
+        else:
+            await event.reply("Auto kick is disabled for this chat")
+    elif input in positive:
+        await event.reply('**Enabled** CAPTCHA kick.')
+        for c in chats:
+          if event.chat_id == c["id"]:
+           return captcha.update_one({"id": event.chat_id}, {"$set": {"time": time}},)
+        captcha.insert_one({"id": event.chat_id, "mode": "on", "type": type, "time": 300})
+    elif input in negative:
+     await event.reply("**Disabled** CAPTCHA Kick")
+     for c in chats:
+       if event.chat_id == c["id"]:
+        return captcha.update_one({"id": event.chat_id}, {"$set": {"time": 0}},)
+     captcha.insert_one({"id": event.chat_id, "mode": "on", "type": type, "time": 0})
 
 @tbot.on(events.NewMessage(pattern="^[!/]setcaptchatext ?(.*)"))
 async def ba(event):

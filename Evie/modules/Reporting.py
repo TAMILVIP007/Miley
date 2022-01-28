@@ -66,15 +66,14 @@ async def _(event):
         if not await can_change_info(message=event):
             return
     chat = event.chat_id
-    args = event.pattern_match.group(1)
-    if args:
-        if args == "on" or args == "yes":
+    if args := event.pattern_match.group(1):
+        if args in ["on", "yes"]:
             sql.set_chat_setting(chat, True)
             await event.reply(
                 "Users will now be able to report messages."
             )
 
-        elif args == "off" or args == "no":
+        elif args in ["off", "no"]:
             sql.set_chat_setting(chat, False)
             await event.reply(
                 "Users will no longer be able to report via @admin or /report."

@@ -100,10 +100,7 @@ def get_readable_time(seconds: int) -> str:
 
     while count < 4:
         count += 1
-        if count < 3:
-            remainder, result = divmod(seconds, 60)
-        else:
-            remainder, result = divmod(seconds, 24)
+        remainder, result = divmod(seconds, 60) if count < 3 else divmod(seconds, 24)
         if seconds == 0 and remainder == 0:
             break
         time_list.append(int(result))
@@ -121,23 +118,22 @@ def get_readable_time(seconds: int) -> str:
 
 @register(pattern="^/setbio ?(.*)")
 async def bio(event):
-  replied_user = await event.get_reply_message()
-  user_id = replied_user.sender_id
-  input = event.pattern_match.group(1)
-  if event.sender_id == OWNER_ID:
-    if input == "None":
-       rm_bio(user_id)
-       await event.reply(f"Removed Bio of {replied_user.sender.first_name}")
-       return
-    set_bio(user_id, input)
-    await event.reply(f"Updated {replied_user.sender.first_name}'s bio!")
-  else:
-   if event.sender_id == user_id:
-     await event.reply("Are you looking to change your own ... ?? That 's it.")
-     return
-   else:
-     set_bio(user_id, input)
-     await event.reply(f"Updated {replied_user.sender.first_name}'s Bio")
+    replied_user = await event.get_reply_message()
+    user_id = replied_user.sender_id
+    input = event.pattern_match.group(1)
+    if event.sender_id == OWNER_ID:
+        if input == "None":
+           rm_bio(user_id)
+           await event.reply(f"Removed Bio of {replied_user.sender.first_name}")
+           return
+        set_bio(user_id, input)
+        await event.reply(f"Updated {replied_user.sender.first_name}'s bio!")
+    elif event.sender_id == user_id:
+        await event.reply("Are you looking to change your own ... ?? That 's it.")
+        return
+    else:
+        set_bio(user_id, input)
+        await event.reply(f"Updated {replied_user.sender.first_name}'s Bio")
      
 
 @register(pattern="^/info(?: |$)(.*)")
@@ -173,7 +169,7 @@ async def ping(event):
 
 @ubot.on(events.NewMessage(pattern="!ping"))
 async def ubot(event):
-    if not event.sender_id == OWNER_ID:
+    if event.sender_id != OWNER_ID:
         return
     if event.fwd_from:
         return
@@ -277,117 +273,114 @@ async def bgay(event):
 
 @register(pattern="^/shazam$")
 async def _(event):
- try:
-    if event.is_group:
-      if not await is_admin(event, event.sender_id):
-       return
-    if event.fwd_from:
-        return
-    if not event.reply_to_msg_id:
-        await event.reply("Reply to an audio message.")
-        return
-    reply_message = await event.get_reply_message()
-    stt = await event.reply("Identifying the song.")
-    tmp = './'
-    dl = await tbot.download_media(
-            reply_message,
-            tmp)
-    chat = "@auddbot"
-    await stt.edit("Identifying the song...")
-    async with ubot.conversation(chat) as conv:
-        try:
-            await conv.send_file(dl)
-            check = await conv.get_response()
-            if not check.text.startswith("Audio received"):
-                return await stt.edit("An error while identifying the song. Try to use a 5-10s long audio message.")
-            await stt.edit("Wait just a sec...")
-            result = await conv.get_response()
-            await ubot.send_read_acknowledge(conv.chat_id)
-        except Exception:
-            await stt.edit("Error, Report at @Eviesupport")
+    try:
+        if event.is_group and not await is_admin(event, event.sender_id):
             return
-    namem = f"Song Name : {result.text.splitlines()[0]}\
+        if event.fwd_from:
+            return
+        if not event.reply_to_msg_id:
+            await event.reply("Reply to an audio message.")
+            return
+        reply_message = await event.get_reply_message()
+        stt = await event.reply("Identifying the song.")
+        tmp = './'
+        dl = await tbot.download_media(
+                reply_message,
+                tmp)
+        chat = "@auddbot"
+        await stt.edit("Identifying the song...")
+        async with ubot.conversation(chat) as conv:
+            try:
+                await conv.send_file(dl)
+                check = await conv.get_response()
+                if not check.text.startswith("Audio received"):
+                    return await stt.edit("An error while identifying the song. Try to use a 5-10s long audio message.")
+                await stt.edit("Wait just a sec...")
+                result = await conv.get_response()
+                await ubot.send_read_acknowledge(conv.chat_id)
+            except Exception:
+                await stt.edit("Error, Report at @Eviesupport")
+                return
+        namem = f"Song Name : {result.text.splitlines()[0]}\
         \n\nDetails : {result.text.splitlines()[2]}"
-    await stt.edit(namem)
- except Exception as e:
-      await event.reply(e)
+        await stt.edit(namem)
+    except Exception as e:
+         await event.reply(e)
 
 def dt():
     now = stime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M")
-    dt_list = dt_string.split(' ')
-    return dt_list
+    return dt_string.split(' ')
 
 
 def dt_tom():
-    a = str(int(dt()[0].split('/')[0]) + 1)+"/" + \
+    return str(int(dt()[0].split('/')[0]) + 1)+"/" + \
         dt()[0].split('/')[1]+"/" + dt()[0].split('/')[2]
-    return a
 
 guy = 0
 lad = 0
 
 @tbot.on(events.NewMessage(pattern="^[!/]couple$"))
 async def kk(event):
-  global guy
-  global lad
-  guy = 0
-  lad = 0
-  if event.is_private:
-    return await event.reply("This command is group specific")
-  today = str(dt()[0])
-  tomorrow = str(dt_tom())
-  chat_id = event.chat_id
-  is_selected = await get_couple(chat_id, today)
-  if not is_selected:
-      list_of_users = []
-      async for i in tbot.iter_participants(chat_id):
-           list_of_users.append(i.id)
-      if len(list_of_users) < 2:
-           await event.reply("Not enough users")
-           return
-      c1_id = random.choice(list_of_users)
-      c2_id = random.choice(list_of_users)
-      while c1_id == c2_id:
-            c1_id = random.choice(list_of_users)
-      arg = await tbot.get_entity(int(c2_id))
-      c1_mention = arg.first_name
-      gra = await tbot.get_entity(int(c1_id))
-      c2_mention = gra.first_name
-      couple_selection_message = f"""**Couple of the day:**
+    global guy
+    global lad
+    guy = 0
+    lad = 0
+    if event.is_private:
+      return await event.reply("This command is group specific")
+    today = str(dt()[0])
+    tomorrow = str(dt_tom())
+    chat_id = event.chat_id
+    is_selected = await get_couple(chat_id, today)
+    if not is_selected:
+        list_of_users = []
+        async for i in tbot.iter_participants(chat_id):
+             list_of_users.append(i.id)
+        if len(list_of_users) < 2:
+             await event.reply("Not enough users")
+             return
+        c1_id = random.choice(list_of_users)
+        c2_id = random.choice(list_of_users)
+        while c1_id == c2_id:
+              c1_id = random.choice(list_of_users)
+        arg = await tbot.get_entity(int(c2_id))
+        c1_mention = arg.first_name
+        gra = await tbot.get_entity(int(c1_id))
+        c2_mention = gra.first_name
+        couple_selection_message = f"""**Couple of the day:**
 [{c1_mention}](tg://user?id={c2_id}) + [{c2_mention}](tg://user?id={c1_id}) = ❤️
 
 __New couple of the day may be chosen at 12AM {tomorrow}__"""
-      await tbot.send_message(event.chat_id, couple_selection_message)
-      couple = {
-                "c1_id": c1_id,
-                "c2_id": c2_id
-            }
-      await save_couple(chat_id, today, couple)
-  elif is_selected:
-            c1_id = int(is_selected['c1_id'])
-            c2_id = int(is_selected['c2_id'])
-            try:
-              gra = await tbot.get_entity(int(c1_id))
-              c1_name = gra.first_name
-            except:
-              c1_name = c1_id
-            try:
-              arg = await tbot.get_entity(int(c2_id))
-              c2_name = arg.first_name
-            except:
-              c2_name = c2_id
-            couple_selection_message = f"""Couple of the day:
+        await tbot.send_message(event.chat_id, couple_selection_message)
+        couple = {
+                  "c1_id": c1_id,
+                  "c2_id": c2_id
+              }
+        await save_couple(chat_id, today, couple)
+    else:
+        c1_id = int(is_selected['c1_id'])
+        c2_id = int(is_selected['c2_id'])
+        try:
+          gra = await tbot.get_entity(int(c1_id))
+          c1_name = gra.first_name
+        except:
+          c1_name = c1_id
+        try:
+          arg = await tbot.get_entity(int(c2_id))
+          c2_name = arg.first_name
+        except:
+          c2_name = c2_id
+        couple_selection_message = f"""Couple of the day:
 [{c1_name}](tg://user?id={c1_id}) + [{c2_name}](tg://user?id={c2_id}) = ❤️
 
 
 __New couple of the day may be chosen at 12AM {tomorrow}__"""
-            buttons= [Button.inline('Gey', data='ghei'), Button.inline('Lesbo👩‍❤️‍💋‍👩', data='leb')]
-            await tbot.send_message(
-                event.chat_id,
-                couple_selection_message,
-                buttons=buttons
-            )
+        buttons= [Button.inline('Gey', data='ghei'), Button.inline('Lesbo👩‍❤️‍💋‍👩', data='leb')]
+        await tbot.send_message(
+            event.chat_id,
+            couple_selection_message,
+            buttons=buttons
+        )
 
 @tbot.on(events.CallbackQuery(pattern=r"ghei"))
 async def bak(event):
@@ -429,23 +422,23 @@ async def _(event):
              await k.delete()
             except Exception as e:
              await k.edit(f"{e}")
+    elif "invalid" in response_api.text:
+        return await k.edit("You have specified an invalid URL.")
     else:
-        if "invalid" in response_api.text:
-           return await k.edit("You have specified an invalid URL.")
         await k.edit(response_api.text)
 
 @register(pattern="^/iplookup ?(.*)")
 async def _(event):
- input_str = event.pattern_match.group(1)
- if not input_str:
-     return await event.reply("Please provide an ipaddress to get its info!")
- url = f"http://ip-api.com/json/{input_str}?fields=status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,offset,currency,isp,org,as,asname,reverse,mobile,proxy,hosting,query"
- response = requests.get(url)
- info = response.json()
- valid = {info['status']}
- if not "success" in valid:
-    return await event.reply("Invalid IPAddress!")
- output = f"""
+    input_str = event.pattern_match.group(1)
+    if not input_str:
+        return await event.reply("Please provide an ipaddress to get its info!")
+    url = f"http://ip-api.com/json/{input_str}?fields=status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,offset,currency,isp,org,as,asname,reverse,mobile,proxy,hosting,query"
+    response = requests.get(url)
+    info = response.json()
+    valid = {info['status']}
+    if "success" not in valid:
+        return await event.reply("Invalid IPAddress!")
+    output = f"""
 **IP Address:** {info['query']}
 **ContinentCode:** {info['continentCode']}
 **Country:** {info['country']}
@@ -469,7 +462,7 @@ async def _(event):
 **Proxy:** {info['proxy']}
 **Hosting:** {info['hosting']}
 """
- await event.reply(output)
+    await event.reply(output)
 
 class AioHttp:
     @staticmethod
@@ -480,34 +473,34 @@ class AioHttp:
 
 @register(pattern="^/spwinfo ?(.*)")
 async def sw(event):
- replied_user = await get_user(event)
- user_id = replied_user.user.id
- url = f"https://api.intellivoid.net/spamprotection/v1/lookup?query={user_id}"
- a = await AioHttp().get_json(url)
- response = a["success"]
- if response is True:
+    replied_user = await get_user(event)
+    user_id = replied_user.user.id
+    url = f"https://api.intellivoid.net/spamprotection/v1/lookup?query={user_id}"
+    a = await AioHttp().get_json(url)
+    response = a["success"]
+    if response is True:
         date = a["results"]["last_updated"]
-        stats = f"**◢ Intellivoid• SpamProtection Info**:\n"
+        stats = '**◢ Intellivoid• SpamProtection Info**:\n'
         stats += f' • **Updated on**: `{stime.fromtimestamp(date).strftime("%Y-%m-%d %I:%M:%S %p")}`\n'
         stats += (
             f" • **Chat Info**: [Link](t.me/SpamProtectionBot/?start=00_{user_id})\n"
         )
 
         if a["results"]["attributes"]["is_potential_spammer"] is True:
-            stats += f" • **User**: `USERxSPAM`\n"
+            stats += ' • **User**: `USERxSPAM`\n'
         elif a["results"]["attributes"]["is_operator"] is True:
-            stats += f" • **User**: `USERxOPERATOR`\n"
+            stats += ' • **User**: `USERxOPERATOR`\n'
         elif a["results"]["attributes"]["is_agent"] is True:
-            stats += f" • **User**: `USERxAGENT`\n"
+            stats += ' • **User**: `USERxAGENT`\n'
         elif a["results"]["attributes"]["is_whitelisted"] is True:
-            stats += f" • **User**: `USERxWHITELISTED`\n"
+            stats += ' • **User**: `USERxWHITELISTED`\n'
 
         stats += f' • **Type**: `{a["results"]["entity_type"]}`\n'
         stats += (
             f' • **Language**: `{a["results"]["language_prediction"]["language"]}`\n'
         )
         stats += f' • **Language Probability**: `{a["results"]["language_prediction"]["probability"]}`\n'
-        stats += f"**Spam Prediction**:\n"
+        stats += '**Spam Prediction**:\n'
         stats += f' • **Ham Prediction**: `{a["results"]["spam_prediction"]["ham_prediction"]}`\n'
         stats += f' • **Spam Prediction**: `{a["results"]["spam_prediction"]["spam_prediction"]}`\n'
         stats += f'**Blacklisted**: `{a["results"]["attributes"]["is_blacklisted"]}`\n'
@@ -518,8 +511,8 @@ async def sw(event):
             stats += f' • **Flag**: `{a["results"]["attributes"]["blacklist_flag"]}`\n'
         stats += f'**PTID**:\n`{a["results"]["private_telegram_id"]}`\n'
         await event.reply(stats, link_preview=False)
- else:
-    await event.reply("Cannot reach SpamProtection API!")
+    else:
+        await event.reply("Cannot reach SpamProtection API!")
 
 @register(pattern="^/solve ?(.*)")
 async def math(event):

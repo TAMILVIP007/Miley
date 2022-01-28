@@ -157,19 +157,17 @@ async def _(event):
         return
     msg = await event.get_reply_message()
     if msg and msg.media:
-        cws = get_current_welcome_settings(event.chat_id)
-        if cws:
-          rm_welcome_setting(event.chat_id)
+        if cws := get_current_welcome_settings(event.chat_id):
+            rm_welcome_setting(event.chat_id)
         tbot_api_file_id = pack_bot_file_id(msg.media)
         add_welcome_setting(event.chat_id, msg.message, False, 0, tbot_api_file_id)
-        await event.reply("Welcome message saved. ")
     else:
-        cws = get_current_welcome_settings(event.chat_id)
-        if cws:
-          rm_welcome_setting(event.chat_id)
+        if cws := get_current_welcome_settings(event.chat_id):
+            rm_welcome_setting(event.chat_id)
         input_str = event.text.split(None, 1)
         add_welcome_setting(event.chat_id, input_str[1], False, 0, None)
-        await event.reply("Welcome message saved. ")
+
+    await event.reply("Welcome message saved. ")
 
 
 @register(pattern="^/clearwelcome$")  # pylint:disable=E0602
@@ -193,19 +191,17 @@ async def _(event):
         return
     msg = await event.get_reply_message()
     if msg and msg.media:
-        cws = get_current_goodbye_settings(event.chat_id)
-        if cws:
-          rm_goodbye_setting(event.chat_id)
+        if cws := get_current_goodbye_settings(event.chat_id):
+            rm_goodbye_setting(event.chat_id)
         tbot_api_file_id = pack_bot_file_id(msg.media)
         add_goodbye_setting(event.chat_id, msg.text, False, 0, tbot_api_file_id)
-        await event.reply("Goodbye message saved. ")
     else:
         input_str = msg.text
-        cws = get_current_goodbye_settings(event.chat_id)
-        if cws:
-          rm_goodbye_setting(event.chat_id)
+        if cws := get_current_goodbye_settings(event.chat_id):
+            rm_goodbye_setting(event.chat_id)
         add_goodbye_setting(event.chat_id, input_str, False, 0, None)
-        await event.reply("Goodbye message saved. ")
+
+    await event.reply("Goodbye message saved. ")
 
 
 @register(pattern="^/cleargoodbye$")  # pylint:disable=E0602
@@ -243,17 +239,16 @@ async def welcome_verify(event):
             "Please provide some input yes or no.\n\nCurrent setting is : **off**"
         )
         return
-    if input in "on":
-        if event.is_group:
-            chats = botcheck.find({})
-            for c in chats:
-                if event.chat_id == c["id"]:
-                    await event.reply(
-                        "Welcome Captcha is already enabled for this chat."
-                    )
-                    return
-            botcheck.insert_one({"id": event.chat_id})
-            await event.reply("Welcome Captcha enabled for this chat.")
+    if input in "on" and event.is_group:
+        chats = botcheck.find({})
+        for c in chats:
+            if event.chat_id == c["id"]:
+                await event.reply(
+                    "Welcome Captcha is already enabled for this chat."
+                )
+                return
+        botcheck.insert_one({"id": event.chat_id})
+        await event.reply("Welcome Captcha enabled for this chat.")
     if input in "off":
         if event.is_group:
             chats = botcheck.find({})
@@ -264,7 +259,7 @@ async def welcome_verify(event):
                     return
         await event.reply("Welcome Captcha enabled for this chat.")
 
-    if not input == "on" and not input == "off":
+    if input not in ["on", "off"]:
         await event.reply("I only understand by on or off")
         return
 #Will Fix Soon.

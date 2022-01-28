@@ -59,22 +59,14 @@ def register(**args):
                 return
             if check.fwd_from:
                 return
-            if check.is_group or check.is_private:
-                pass
-            if check.is_group:
-               if check.chat.megagroup:
-                  pass
-               else:
-                  return
-                          
+            if check.is_group and not check.chat.megagroup:
+                return
+
             users = blacklist.find({})
             for c in users:
                 if check.sender_id == c["user"]:
                     return
             babe = sudo.find({})
-            for k in babe:
-                if check.sender_id == k["user"]:
-                   pass
             if already_added(check.sender_id):
                pass
             elif not already_added(check.sender_id):
@@ -87,8 +79,6 @@ def register(**args):
                     LOAD_PLUG.update({file_test: [func]})
             except BaseException:
                 return
-            else:
-                pass
 
         tbot.add_event_handler(wrapper, events.NewMessage(**args))
         return wrapper
@@ -157,8 +147,6 @@ def eviebot(**args):
                 pass
             except BaseException as e:
                 print(e)
-            else:
-                pass
 
         if not disable_edited:
             ubot.add_event_handler(wrapper, events.MessageEdited(**args))
