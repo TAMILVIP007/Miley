@@ -38,362 +38,343 @@ RoseLoverX = "e async def lamda -f"
 
 @register(pattern="^/gban ?(.*)")
 async def gban(event):
- sender = event.sender.first_name
- group = event.chat.title
- if event.fwd_from:
+    sender = event.sender.first_name
+    group = event.chat.title
+    if event.fwd_from:
+           return
+    if (
+        event.sender_id != OWNER_ID
+        and (event.sender_id == OWNER_ID or event.sender_id not in DEV_USERS)
+        and (
+            event.sender_id == OWNER_ID
+            or event.sender_id in DEV_USERS
+            or not sudo(int(event.sender_id))
+        )
+    ):
         return
- if event.sender_id == OWNER_ID:
-  pass
- elif event.sender_id in DEV_USERS:
-  pass
- elif sudo(int(event.sender_id)):
-  pass
- else:
-  return
- input = event.pattern_match.group(1)
- if input:
-   arg = input.split(" ", 1)
- if not event.reply_to_msg_id:
-  if len(arg) == 2:
-    iid = arg[0]
-    reason = arg[1]
-  else:
-    iid = arg[0]
-    reason = "None"
-  if not iid.isnumeric():
-   username = iid.replace("@", "")
-   entity = await tbot.get_input_entity(iid)
-   try:
-     r_sender_id = entity.user_id
-   except Exception:
-        await event.reply("Couldn't fetch that user.")
+    input = event.pattern_match.group(1)
+    if input:
+      arg = input.split(" ", 1)
+    if not event.reply_to_msg_id:
+        iid = arg[0]
+        reason = arg[1] if len(arg) == 2 else "None"
+        if not iid.isnumeric():
+         username = iid.replace("@", "")
+         entity = await tbot.get_input_entity(iid)
+         try:
+           r_sender_id = entity.user_id
+         except Exception:
+              await event.reply("Couldn't fetch that user.")
+              return
+        else:
+         r_sender_id = int(iid)
+        try:
+         replied_user = await tbot(GetFullUserRequest(r_sender_id))
+         fname = replied_user.user.first_name
+        except Exception:
+         fname = "User"
+    else:
+        reply_message = await event.get_reply_message()
+        iid = reply_message.sender_id
+        username = reply_message.sender.username
+        fname = reply_message.sender.first_name
+        reason = input or "None"
+        r_sender_id = iid
+    if r_sender_id == OWNER_ID:
+        await event.reply('Vro Chakka He kya?.🤨')
         return
-  else:
-   r_sender_id = int(iid)
-  try:
-   replied_user = await tbot(GetFullUserRequest(r_sender_id))
-   fname = replied_user.user.first_name
-  except Exception:
-   fname = "User"
- else:
-   reply_message = await event.get_reply_message()
-   iid = reply_message.sender_id
-   username = reply_message.sender.username
-   fname = reply_message.sender.first_name
-   if input:
-     reason = input
-   else:
-     reason = "None"
-   r_sender_id = iid
- if r_sender_id == OWNER_ID:
-        await event.reply(f"Vro Chakka He kya?.🤨")
-        return
- elif r_sender_id in DEV_USERS:
-        await event.reply("This Person is a Dev, Sorry!")
-        return
- elif r_sender_id == BOT_ID:
-        await event.reply("Another one bits the dust! banned a betichod!")
-        return
- elif sudo(r_sender_id):
-        await event.reply("Ja Na Nalle.!")
-        return
- chats = gbanned.find({})
- for c in chats:
-      if r_sender_id == c["user"]:
-          to_check = get_reason(id=r_sender_id)
-          gbanned.update_one(
-                {
-                    "_id": to_check["_id"],
-                    "bannerid": to_check["bannerid"],
-                    "user": to_check["user"],
-                    "reason": to_check["reason"],
-                },
-                {"$set": {"reason": reason, "bannerid": event.sender_id}},
-            )
-          await event.reply(
-                "This user is already gbanned, I am updating the reason of the gban with your reason."
-            )
-          await tbot.send_message(GBAN_LOGS, "**Global Ban**\n#UPDATE\n**Originated From: {} {}**\n\n**Sudo Admin:** [{}](tg://user?id={})\n**User:** [{}](tg://user?id={})\n**ID:** `{}`\n**New Reason:** {}".format(
-                                   group, event.chat_id, sender, event.sender_id, fname, r_sender_id, r_sender_id, reason))       
-          return
- gbanned.insert_one(
-        {"bannerid": event.sender_id, "user": r_sender_id, "reason": reason}
-    )
- k = await event.reply("⚡️ **Snaps the Banhammer** ⚡️")
- cheater = get_all_chat_id()
- done = 0
- ti = time.time()
- for i in cheater:
-   try:
-       chat = int(i.chat_id)
-       await tbot(
-                    EditBannedRequest(chat, f"{username}", BANNED_RIGHTS)
+    elif r_sender_id in DEV_USERS:
+           await event.reply("This Person is a Dev, Sorry!")
+           return
+    elif r_sender_id == BOT_ID:
+           await event.reply("Another one bits the dust! banned a betichod!")
+           return
+    elif sudo(r_sender_id):
+           await event.reply("Ja Na Nalle.!")
+           return
+    chats = gbanned.find({})
+    for c in chats:
+         if r_sender_id == c["user"]:
+             to_check = get_reason(id=r_sender_id)
+             gbanned.update_one(
+                   {
+                       "_id": to_check["_id"],
+                       "bannerid": to_check["bannerid"],
+                       "user": to_check["user"],
+                       "reason": to_check["reason"],
+                   },
+                   {"$set": {"reason": reason, "bannerid": event.sender_id}},
                )
-       done = done + 1
-   except Exception:
-       pass
- await tbot.send_message(GBAN_LOGS, "**Global Ban**\n#NEW\n**Originated From: {} {}**\n\n**Sudo Admin:** [{}](tg://user?id={})\n**User:** [{}](tg://user?id={})\n**ID:** `{}`\n**Reason:** {}".format(
-                                   group, event.chat_id, sender, event.sender_id, fname, r_sender_id, r_sender_id, reason))
- tf = time.time()
- timetaken = get_readable_time(tf - ti)
- await event.reply(f"Global Ban Completed!\n**Time Taken:** {timetaken}")      
+             await event.reply(
+                   "This user is already gbanned, I am updating the reason of the gban with your reason."
+               )
+             await tbot.send_message(GBAN_LOGS, "**Global Ban**\n#UPDATE\n**Originated From: {} {}**\n\n**Sudo Admin:** [{}](tg://user?id={})\n**User:** [{}](tg://user?id={})\n**ID:** `{}`\n**New Reason:** {}".format(
+                                      group, event.chat_id, sender, event.sender_id, fname, r_sender_id, r_sender_id, reason))       
+             return
+    gbanned.insert_one(
+           {"bannerid": event.sender_id, "user": r_sender_id, "reason": reason}
+       )
+    k = await event.reply("⚡️ **Snaps the Banhammer** ⚡️")
+    cheater = get_all_chat_id()
+    done = 0
+    ti = time.time()
+    for i in cheater:
+        try:
+            chat = int(i.chat_id)
+            await tbot(
+                         EditBannedRequest(chat, f"{username}", BANNED_RIGHTS)
+                    )
+            done += 1
+        except Exception:
+            pass
+    await tbot.send_message(GBAN_LOGS, "**Global Ban**\n#NEW\n**Originated From: {} {}**\n\n**Sudo Admin:** [{}](tg://user?id={})\n**User:** [{}](tg://user?id={})\n**ID:** `{}`\n**Reason:** {}".format(
+                                      group, event.chat_id, sender, event.sender_id, fname, r_sender_id, r_sender_id, reason))
+    tf = time.time()
+    timetaken = get_readable_time(tf - ti)
+    await event.reply(f"Global Ban Completed!\n**Time Taken:** {timetaken}")      
 
 @register(pattern="^/ungban ?(.*)")
 async def ugban(event):
- sender = event.sender.first_name
- group = event.chat.title
- id = event.sender_id
- if event.fwd_from:
+    sender = event.sender.first_name
+    group = event.chat.title
+    id = event.sender_id
+    if event.fwd_from:
+           return
+    if (
+        event.sender_id != OWNER_ID
+        and (event.sender_id == OWNER_ID or event.sender_id not in DEV_USERS)
+        and (
+            event.sender_id == OWNER_ID
+            or event.sender_id in DEV_USERS
+            or not sudo(event.sender_id)
+        )
+    ):
         return
- if event.sender_id == OWNER_ID:
-  pass
- elif event.sender_id in DEV_USERS:
-  pass
- elif sudo(event.sender_id):
-  pass
- else:
-  return
- input = event.pattern_match.group(1)
- if input:
-   arg = input.split(" ", 1)
- if not event.reply_to_msg_id:
-  if len(arg) == 2:
-    iid = arg[0]
-    reason = arg[1]
-  else:
-    iid = arg[0]
-    reason = None
-  if not iid.isnumeric():
-   username = iid.replace("@", "")
-   entity = await tbot.get_input_entity(iid)
-   try:
-     r_sender_id = entity.user_id
-   except Exception:
-        await event.reply("Couldn't fetch that user.")
-        return
-  else:
-   r_sender_id = int(iid)
-  try:
-   replied_user = await tbot(GetFullUserRequest(r_sender_id))
-   fname = replied_user.user.first_name
-  except Exception:
-   fname = "User"
- else:
-   reply_message = await event.get_reply_message()
-   iid = reply_message.sender_id
-   username = reply_message.sender.username
-   fname = reply_message.sender.first_name
-   if input:
-     reason = input
-   else:
-     reason = None
-   r_sender_id = iid
- if r_sender_id == OWNER_ID:
-        await event.reply("Gey Away.")
-        return
- elif r_sender_id in DEV_USERS:
-        await event.reply("No!")
-        return
- elif r_sender_id == BOT_ID:
-        await event.reply("Who Dafaq Made You Sudo?!")
-        return
- elif sudo(r_sender_id):
-        await event.reply("Sudo ko kon ungban krta londe.?")
-        return
- chats = gbanned.find({})
- for c in chats:
-        if r_sender_id == c["user"]:
-            to_check = get_reason(id=r_sender_id)
-            gbanned.delete_one({"user": r_sender_id})
-            await event.reply("Globally Pardoned This User.!🏳️")
-            await tbot.send_message(GBAN_LOGS, "**Global Unban**\n#UNGBAN\n**Originated From: {} {}**\n\n**Sudo Admin:** [{}](tg://user?id={})\n**User:** [{}](tg://user?id={})\n**ID:** `{}`\n**Reason:** {}".format(
-                                   group, event.chat_id, sender, event.sender_id, fname, r_sender_id, r_sender_id, reason))
-            return
- await event.reply("Yeah that user is not in my Gbanned list.!?")
+    input = event.pattern_match.group(1)
+    if input:
+      arg = input.split(" ", 1)
+    if not event.reply_to_msg_id:
+        iid = arg[0]
+        reason = arg[1] if len(arg) == 2 else None
+        if not iid.isnumeric():
+         username = iid.replace("@", "")
+         entity = await tbot.get_input_entity(iid)
+         try:
+           r_sender_id = entity.user_id
+         except Exception:
+              await event.reply("Couldn't fetch that user.")
+              return
+        else:
+         r_sender_id = int(iid)
+        try:
+         replied_user = await tbot(GetFullUserRequest(r_sender_id))
+         fname = replied_user.user.first_name
+        except Exception:
+         fname = "User"
+    else:
+        reply_message = await event.get_reply_message()
+        iid = reply_message.sender_id
+        username = reply_message.sender.username
+        fname = reply_message.sender.first_name
+        reason = input or None
+        r_sender_id = iid
+    if r_sender_id == OWNER_ID:
+           await event.reply("Gey Away.")
+           return
+    elif r_sender_id in DEV_USERS:
+           await event.reply("No!")
+           return
+    elif r_sender_id == BOT_ID:
+           await event.reply("Who Dafaq Made You Sudo?!")
+           return
+    elif sudo(r_sender_id):
+           await event.reply("Sudo ko kon ungban krta londe.?")
+           return
+    chats = gbanned.find({})
+    for c in chats:
+           if r_sender_id == c["user"]:
+               to_check = get_reason(id=r_sender_id)
+               gbanned.delete_one({"user": r_sender_id})
+               await event.reply("Globally Pardoned This User.!🏳️")
+               await tbot.send_message(GBAN_LOGS, "**Global Unban**\n#UNGBAN\n**Originated From: {} {}**\n\n**Sudo Admin:** [{}](tg://user?id={})\n**User:** [{}](tg://user?id={})\n**ID:** `{}`\n**Reason:** {}".format(
+                                      group, event.chat_id, sender, event.sender_id, fname, r_sender_id, r_sender_id, reason))
+               return
+    await event.reply("Yeah that user is not in my Gbanned list.!?")
 
 @register(pattern="^/gmute ?(.*)")
 async def gban(event):
- sender = event.sender.first_name
- group = event.chat.title
- if event.fwd_from:
+    sender = event.sender.first_name
+    group = event.chat.title
+    if event.fwd_from:
+           return
+    if (
+        event.sender_id != OWNER_ID
+        and (event.sender_id == OWNER_ID or event.sender_id not in DEV_USERS)
+        and (
+            event.sender_id == OWNER_ID
+            or event.sender_id in DEV_USERS
+            or not sudo(event.sender_id)
+        )
+    ):
         return
- if event.sender_id == OWNER_ID:
-  pass
- elif event.sender_id in DEV_USERS:
-  pass
- elif sudo(event.sender_id):
-  pass
- else:
-  return
- input = event.pattern_match.group(1)
- if input:
-   arg = input.split(" ", 1)
- if not event.reply_to_msg_id:
-  if len(arg) == 2:
-    iid = arg[0]
-    reason = arg[1]
-  else:
-    iid = arg[0]
-    reason = "None"
-  if not iid.isnumeric():
-   username = iid.replace("@", "")
-   entity = await tbot.get_input_entity(iid)
-   try:
-     r_sender_id = entity.user_id
-   except Exception:
-        await event.reply("Couldn't fetch that user.")
+    input = event.pattern_match.group(1)
+    if input:
+      arg = input.split(" ", 1)
+    if not event.reply_to_msg_id:
+        iid = arg[0]
+        reason = arg[1] if len(arg) == 2 else "None"
+        if not iid.isnumeric():
+         username = iid.replace("@", "")
+         entity = await tbot.get_input_entity(iid)
+         try:
+           r_sender_id = entity.user_id
+         except Exception:
+              await event.reply("Couldn't fetch that user.")
+              return
+        else:
+         r_sender_id = int(iid)
+        try:
+         replied_user = await tbot(GetFullUserRequest(r_sender_id))
+         fname = replied_user.user.first_name
+        except Exception:
+         fname = "User"
+    else:
+        reply_message = await event.get_reply_message()
+        iid = reply_message.sender_id
+        username = reply_message.sender.username
+        fname = reply_message.sender.first_name
+        reason = input or "None"
+        r_sender_id = iid
+    if r_sender_id == OWNER_ID:
+        await event.reply('Char Chavanni godhe pe\ngey Mere Lode Pe!.')
         return
-  else:
-   r_sender_id = int(iid)
-  try:
-   replied_user = await tbot(GetFullUserRequest(r_sender_id))
-   fname = replied_user.user.first_name
-  except Exception:
-   fname = "User"
- else:
-   reply_message = await event.get_reply_message()
-   iid = reply_message.sender_id
-   username = reply_message.sender.username
-   fname = reply_message.sender.first_name
-   if input:
-     reason = input
-   else:
-     reason = "None"
-   r_sender_id = iid
- if r_sender_id == OWNER_ID:
-        await event.reply(f"Char Chavanni godhe pe\ngey Mere Lode Pe!.")
-        return
- elif r_sender_id in DEV_USERS:
-        await event.reply("This Person is a Dev, Sorry!")
-        return
- elif r_sender_id == BOT_ID:
-        await event.reply("Another one bits the dust! banned a betichod!")
-        return
- elif sudo(r_sender_id):
-        await event.reply("Yeah Nibba that's a Sudo User🤨")
-        return
- chats = gmuted.find({})
- for c in chats:
-      if r_sender_id == c["user"]:
-          to_check = get_reason(id=r_sender_id)
-          gmuted.update_one(
-                {
-                    "_id": to_check["_id"],
-                    "bannerid": to_check["bannerid"],
-                    "user": to_check["user"],
-                    "reason": to_check["reason"],
-                },
-                {"$set": {"reason": reason, "bannerid": event.sender_id}},
-            )
-          await event.reply(
-                "This user is already gmuted, I am updating the reason of the gmute with your reason."
-            )
-          await tbot.send_message(GBAN_LOGS, "**Global Mute**\n#UPDATE\n**ID:** `{}`".format(r_sender_id))
+    elif r_sender_id in DEV_USERS:
+           await event.reply("This Person is a Dev, Sorry!")
+           return
+    elif r_sender_id == BOT_ID:
+           await event.reply("Another one bits the dust! banned a betichod!")
+           return
+    elif sudo(r_sender_id):
+           await event.reply("Yeah Nibba that's a Sudo User🤨")
+           return
+    chats = gmuted.find({})
+    for c in chats:
+         if r_sender_id == c["user"]:
+             to_check = get_reason(id=r_sender_id)
+             gmuted.update_one(
+                   {
+                       "_id": to_check["_id"],
+                       "bannerid": to_check["bannerid"],
+                       "user": to_check["user"],
+                       "reason": to_check["reason"],
+                   },
+                   {"$set": {"reason": reason, "bannerid": event.sender_id}},
+               )
+             await event.reply(
+                   "This user is already gmuted, I am updating the reason of the gmute with your reason."
+               )
+             await tbot.send_message(GBAN_LOGS, "**Global Mute**\n#UPDATE\n**ID:** `{}`".format(r_sender_id))
 
- gmuted.insert_one(
-        {"bannerid": event.sender_id, "user": r_sender_id, "reason": reason}
-    )
- await tbot.send_message(GBAN_LOGS, "**Global Mute**\n**Sudo Admin:** {}\n**User:** {}\n**ID:** `{}`".format(sender, fname, r_sender_id))
- await event.reply("Sucessfully Added user to Gmute List!")
+    gmuted.insert_one(
+           {"bannerid": event.sender_id, "user": r_sender_id, "reason": reason}
+       )
+    await tbot.send_message(GBAN_LOGS, "**Global Mute**\n**Sudo Admin:** {}\n**User:** {}\n**ID:** `{}`".format(sender, fname, r_sender_id))
+    await event.reply("Sucessfully Added user to Gmute List!")
  
 @register(pattern="^/ungmute ?(.*)")
 async def ugban(event):
- sender = event.sender.first_name
- group = event.chat.title
- id = event.sender_id
- if event.fwd_from:
+    sender = event.sender.first_name
+    group = event.chat.title
+    id = event.sender_id
+    if event.fwd_from:
+           return
+    if (
+        event.sender_id != OWNER_ID
+        and (event.sender_id == OWNER_ID or event.sender_id not in DEV_USERS)
+        and (
+            event.sender_id == OWNER_ID
+            or event.sender_id in DEV_USERS
+            or not sudo(id)
+        )
+    ):
         return
- if event.sender_id == OWNER_ID:
-  pass
- elif event.sender_id in DEV_USERS:
-  pass
- elif sudo(id):
-  pass
- else:
-  return
- input = event.pattern_match.group(1)
- if input:
-   arg = input.split(" ", 1)
- if not event.reply_to_msg_id:
-  if len(arg) == 2:
-    iid = arg[0]
-    reason = arg[1]
-  else:
-    iid = arg[0]
-    reason = None
-  if not iid.isnumeric():
-   username = iid.replace("@", "")
-   entity = await tbot.get_input_entity(iid)
-   try:
-     r_sender_id = entity.user_id
-   except Exception:
-        await event.reply("Couldn't fetch that user.")
+    input = event.pattern_match.group(1)
+    if input:
+      arg = input.split(" ", 1)
+    if not event.reply_to_msg_id:
+        iid = arg[0]
+        reason = arg[1] if len(arg) == 2 else None
+        if not iid.isnumeric():
+         username = iid.replace("@", "")
+         entity = await tbot.get_input_entity(iid)
+         try:
+           r_sender_id = entity.user_id
+         except Exception:
+              await event.reply("Couldn't fetch that user.")
+              return
+        else:
+         r_sender_id = int(iid)
+        try:
+         replied_user = await tbot(GetFullUserRequest(r_sender_id))
+         fname = replied_user.user.first_name
+        except Exception:
+         fname = "User"
+    else:
+        reply_message = await event.get_reply_message()
+        iid = reply_message.sender_id
+        username = reply_message.sender.username
+        fname = reply_message.sender.first_name
+        reason = input or None
+        r_sender_id = iid
+    if r_sender_id == OWNER_ID:
+        await event.reply('Yeah FuckOff!')
         return
-  else:
-   r_sender_id = int(iid)
-  try:
-   replied_user = await tbot(GetFullUserRequest(r_sender_id))
-   fname = replied_user.user.first_name
-  except Exception:
-   fname = "User"
- else:
-   reply_message = await event.get_reply_message()
-   iid = reply_message.sender_id
-   username = reply_message.sender.username
-   fname = reply_message.sender.first_name
-   if input:
-     reason = input
-   else:
-     reason = None
-   r_sender_id = iid
- if r_sender_id == OWNER_ID:
-        await event.reply(f"Yeah FuckOff!")
-        return
- elif r_sender_id in DEV_USERS:
-        await event.reply("No!")
-        return
- elif r_sender_id == BOT_ID:
-        await event.reply("Who Dafaq Made You Sudo?!")
-        return
- elif sudo(r_sender_id):
-        await event.reply("Yeah Nibba that's a Sudo User🤨")
-        return
- chats = gmuted.find({})
- for c in chats:
-        if r_sender_id == c["user"]:
-            to_check = get_reason(id=r_sender_id)
-            gmuted.delete_one({"user": r_sender_id})
-            await event.reply("Globally Pardoned This User.!🏳️")
-            await tbot.send_message(GBAN_LOGS, "**Global Unmute**\n**ID:** `{}`".format(
-                                   r_sender_id))
-            return
- await event.reply("Yeah that user is not in my Gmute list.!?")
+    elif r_sender_id in DEV_USERS:
+           await event.reply("No!")
+           return
+    elif r_sender_id == BOT_ID:
+           await event.reply("Who Dafaq Made You Sudo?!")
+           return
+    elif sudo(r_sender_id):
+           await event.reply("Yeah Nibba that's a Sudo User🤨")
+           return
+    chats = gmuted.find({})
+    for c in chats:
+           if r_sender_id == c["user"]:
+               to_check = get_reason(id=r_sender_id)
+               gmuted.delete_one({"user": r_sender_id})
+               await event.reply("Globally Pardoned This User.!🏳️")
+               await tbot.send_message(GBAN_LOGS, "**Global Unmute**\n**ID:** `{}`".format(
+                                      r_sender_id))
+               return
+    await event.reply("Yeah that user is not in my Gmute list.!?")
 
 
 @tbot.on(events.ChatAction)
 async def joinban(event):
-    if event.user_joined:
-      if await is_admin(event, BOT_ID):
-        chats = gbanned.find({})
-        for c in chats:
-          if event.user_id == c["user"]:
-              reason = c["reason"]
-              bannerid = c["bannerid"]
-              try:
-               chat = event.chat_id
-               await tbot(
-                    EditBannedRequest(chat, event.user_id, BANNED_RIGHTS)
-                 )
-               text = f"""
+    if not event.user_joined:
+        return
+    if await is_admin(event, BOT_ID):
+      chats = gbanned.find({})
+      for c in chats:
+        if event.user_id == c["user"]:
+            reason = c["reason"]
+            bannerid = c["bannerid"]
+            try:
+             chat = event.chat_id
+             await tbot(
+                  EditBannedRequest(chat, event.user_id, BANNED_RIGHTS)
+               )
+             text = f"""
 **Alert:** this user is globally banned.
 `*bans them from here*`.
 **Appeal chat:** @EvieSupport
 **User ID:** `{event.sender_id}`
 **Ban Reason:** `{reason}` // `GBanned by {bannerid}`
 """
-               await tbot.send_message(event.chat_id, text)
-              except Exception:
-                   pass
+             await tbot.send_message(event.chat_id, text)
+            except Exception:
+                 pass
               
 @tbot.on(events.NewMessage(pattern=None))
 async def gmute(event):

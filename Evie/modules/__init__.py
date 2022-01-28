@@ -7,13 +7,9 @@ from telethon.tl.types import ChatBannedRights
 from Evie.modules.sql.elevated_sql import SUDO_USERS as su
 from captcha.image import ImageCaptcha
 
-#Setup SUDO
-SUDO_USERS = []
 ELITES = []
 Elevated = su
-for x in Elevated:
-    SUDO_USERS.append(x)
-
+SUDO_USERS = list(Elevated)
 #mongodb
 client = MongoClient(MONGO_DB_URI)
 db = client["evie"]
@@ -25,11 +21,8 @@ async def get_user(event):
         user_obj = await event.client.get_entity(previous_message.sender_id)
         extra = event.pattern_match.group(1)
     elif args:
-        extra = None
         user = args[0]
-        if len(args) == 2:
-            extra = args[1]
-
+        extra = args[1] if len(args) == 2 else None
         if user.isnumeric():
             user = int(user)
 
@@ -83,10 +76,7 @@ async def can_ban_users(message):
 async def is_admin(chat_id, user):
     try:
         sed = await event.client.get_permissions(event.chat_id, user)
-        if sed.is_admin:
-            is_mod = True
-        else:
-            is_mod = False
+        is_mod = bool(sed.is_admin)
     except:
         is_mod = False
     return is_mod
@@ -98,13 +88,10 @@ alphabet_uppercase = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O
 def gen_captcha(captcha_string_size=10):
     captcha_string_list = []
     base_char = alphabet_lowercase + alphabet_uppercase + number_list
-    for i in range(captcha_string_size):
+    for _ in range(captcha_string_size):
         char = random.choice(base_char)
         captcha_string_list.append(char)
-    captcha_string = '' 
-    for item in captcha_string_list:
-        captcha_string += str(item)
-    return captcha_string
+    return ''.join(str(item) for item in captcha_string_list)
 
 def gen_img_captcha(captcha_string_size=6):
  image_captcha = ImageCaptcha(width = 1250, height = 800, font_sizes=[350, 210, 300])
@@ -113,32 +100,29 @@ def gen_img_captcha(captcha_string_size=6):
  image_captcha.write(text, image_file)
  
 async def ban_user(chat_id, user_id):
- out = True
- try:
-    await tbot(EditBannedRequest(chat_id, user_id, ChatBannedRights(until_date=None, view_messages=True)))
- except:
-    pass
-    out = False
- return out
+    out = True
+    try:
+        await tbot(EditBannedRequest(chat_id, user_id, ChatBannedRights(until_date=None, view_messages=True)))
+    except:
+        out = False
+    return out
 
 async def unban_user(chat_id, user_id):
- out = True
- try:
-    await tbot(EditBannedRequest(chat_id, user_id, ChatBannedRights(until_date=None, view_messages=False)))
- except:
-    pass
-    out = False
- return out
+    out = True
+    try:
+        await tbot(EditBannedRequest(chat_id, user_id, ChatBannedRights(until_date=None, view_messages=False)))
+    except:
+        out = False
+    return out
 
 
 async def kick_user(chat_id, user_id):
- out = True
- try:
-    await tbot.kick_participant(chat_id, user_id)
- except:
-    pass
-    out = False
- return out
+    out = True
+    try:
+        await tbot.kick_participant(chat_id, user_id)
+    except:
+        out = False
+    return out
 
 async def mute_user(chat_id, user_id):
  out = True
@@ -166,11 +150,11 @@ async def extract_time(message, time_val):
             await message.reply(f"Invalid time type specified. Expected m,h, or d, got: {unit}")
             return ""
 
-        if unit == "m" or unit == "minute":
+        if unit in ["m", "minute"]:
             bantime = int(time.time() + int(time_num) * 60)
-        elif unit == "h" or unit == "hour":
+        elif unit in ["h", "hour"]:
             bantime = int(time.time() + int(time_num) * 60 * 60)
-        elif unit == "d" or unit == "day":
+        elif unit in ["d", "day"]:
             bantime = int(time.time() + int(time_num) * 24 * 60 * 60)
         else:
             return
@@ -191,11 +175,11 @@ async def get_time(message, time_val):
             await message.reply(f"Invalid time type specified. Expected m,h, or d, got: {unit}")
             return ""
 
-        if unit == "m" or unit == "minute":
+        if unit in ["m", "minute"]:
             bantime = int(time_num) * 60
-        elif unit == "h" or unit == "hour":
+        elif unit in ["h", "hour"]:
             bantime = int(time_num) * 60 * 60
-        elif unit == "d" or unit == "day":
+        elif unit in ["d", "day"]:
             bantime = int(time_num) * 24 * 60 * 60
         else:
             return
@@ -209,22 +193,20 @@ async def get_time(message, time_val):
         return    
     
 async def tmute_user(chat_id, user_id, time=3600):
- out = True
- try:
-    await tbot(EditBannedRequest(chat_id, user_id, ChatBannedRights(until_date=int(time), send_messages=True)))
- except:
-    pass
-    out = False
- return out
+    out = True
+    try:
+        await tbot(EditBannedRequest(chat_id, user_id, ChatBannedRights(until_date=int(time), send_messages=True)))
+    except:
+        out = False
+    return out
 
 async def tban_user(chat_id, user_id, time=3600):
- out = True
- try:
-    await tbot(EditBannedRequest(chat_id, user_id, ChatBannedRights(until_date=int(time), view_messages=True)))
- except:
-    pass
-    out = False
- return out
+    out = True
+    try:
+        await tbot(EditBannedRequest(chat_id, user_id, ChatBannedRights(until_date=int(time), view_messages=True)))
+    except:
+        out = False
+    return out
 
 
 def Cquery(args):
@@ -241,10 +223,7 @@ def get_readable_time(seconds: int) -> str:
 
     while count < 4:
         count += 1
-        if count < 3:
-            remainder, result = divmod(seconds, 60)
-        else:
-            remainder, result = divmod(seconds, 24)
+        remainder, result = divmod(seconds, 60) if count < 3 else divmod(seconds, 24)
         if seconds == 0 and remainder == 0:
             break
         time_list.append(int(result))

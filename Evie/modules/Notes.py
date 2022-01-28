@@ -23,10 +23,8 @@ async def on_note(event):
     global name
     name = event.pattern_match.group(1)
     note = get_notes(event.chat_id, name)
-    if not note is None:
-      message_id = event.sender_id
-      if event.reply_to_msg_id:
-        message_id = event.reply_to_msg_id
+    if note is not None:
+        message_id = event.reply_to_msg_id or event.sender_id
     chats = pnotes.find({})
     mode = False
     for c in chats:
@@ -46,10 +44,8 @@ async def lebel(event):
     if not name:
       return await event.reply("Not enough arguments!")
     note = get_notes(event.chat_id, name)
-    if not note is None:
-      message_id = event.sender_id
-      if event.reply_to_msg_id:
-        message_id = event.reply_to_msg_id
+    if note is not None:
+        message_id = event.reply_to_msg_id or event.sender_id
     chats = pnotes.find({})
     mode = False
     for c in chats:
@@ -86,29 +82,26 @@ async def no_arg(event):
 
 @register(pattern="^/save ?(.*)")
 async def _(event):
-    if event.is_group:
-      if not await is_admin(event, event.sender_id):
-        await event.reply("You need to be an admin to do this.")
+    if not event.is_group:
         return
-      if not await can_change_info(message=event):
-        await event.reply("You are missing the following rights to use this command: CanChangeInfo")
-        return
-    else:
-        return
-    if not event.reply_to_msg_id:
-     input = event.pattern_match.group(1)
-     if input:
-       arg = input.split(" ", 1)
-     if len(arg) == 2:
-      name = arg[0]
-      msg = arg[1]
-     else:
-      name = arg[0]
-      if not name:
-        await event.reply("You need to give the note a name!")
-        return
-      await event.reply("You need to give the note some content!")
+    if not await is_admin(event, event.sender_id):
+      await event.reply("You need to be an admin to do this.")
       return
+    if not await can_change_info(message=event):
+      await event.reply("You are missing the following rights to use this command: CanChangeInfo")
+      return
+    if not event.reply_to_msg_id:
+        if input := event.pattern_match.group(1):
+            arg = input.split(" ", 1)
+        name = arg[0]
+        if len(arg) == 2:
+            msg = arg[1]
+        else:
+            if not name:
+              await event.reply("You need to give the note a name!")
+              return
+            await event.reply("You need to give the note some content!")
+            return
     if event.reply_to_msg_id:
      reply_message = await event.get_reply_message()
      msg = reply_message.text
@@ -128,9 +121,7 @@ async def _(event):
 
 @register(pattern="^/notes$")
 async def on_note_list(event):
-    if event.is_group:
-        pass
-    else:
+    if not event.is_group:
         return
     all_notes = get_all_notes(event.chat_id)
     OUT_STR = f"List of notes in {event.chat.title}:\n"
@@ -215,15 +206,14 @@ async def start_again(event):
 
 @register(pattern="^/clear (.*)")
 async def on_note_delete(event):
-    if event.is_group:
-      if not await is_admin(event, event.sender_id):
-        await event.reply("You need to be an admin to do this.")
+    if not event.is_group:
         return
-      if not await can_change_info(message=event):
-        await event.reply("You are missing the following rights to use this command: CanChangeInfo")
-        return
-    else:
-        return
+    if not await is_admin(event, event.sender_id):
+      await event.reply("You need to be an admin to do this.")
+      return
+    if not await can_change_info(message=event):
+      await event.reply("You are missing the following rights to use this command: CanChangeInfo")
+      return
     name = event.pattern_match.group(1)
     remove_note(event.chat_id, name)
     await event.reply("Note **{}** deleted!".format(name))
@@ -231,39 +221,39 @@ async def on_note_delete(event):
 
 @register(pattern="^/privatenotes ?(.*)")
 async def pr(event):
- if not await is_admin(event, event.sender_id):
-   return await event.reply("Only admins can execute this command!")
- if not await can_change_info(message=event):
-   return await event.reply("You don't have enough rights to do this!")
- arg = event.pattern_match.group(1)
- if not arg:
-    return await no_arg(event)
- arg.replace("yes", "on")
- arg.replace("no", "off")
- if not arg == "on" and not arg == "yes" and not arg == "no" and not arg == "off":
-   return await event.reply("I only understand the following: yes/no/on/off")
- chats = pnotes.find({})
- if arg == "on":
-   mode = True
-   await event.reply("Evie will now send a message to your chat with a button redirecting to PM, where the user will receive the note.")
- elif arg == "off":
-   mode = False
-   await event.reply("Evie will now send notes straight to the group.")
- for c in chats:
-   if event.chat_id == c["id"]:
-     to_check = get_chat(id=event.chat_id)
-     pnotes.update_one(
-                {
-                    "_id": to_check["_id"],
-                    "id": to_check["id"],
-                    "mode": to_check["mode"],
-                },
-                {"$set": {"mode": mode}},
-            )
-     return
- pnotes.insert_one(
-        {"id": event.chat_id, "mode": mode}
-    )
+    if not await is_admin(event, event.sender_id):
+      return await event.reply("Only admins can execute this command!")
+    if not await can_change_info(message=event):
+      return await event.reply("You don't have enough rights to do this!")
+    arg = event.pattern_match.group(1)
+    if not arg:
+       return await no_arg(event)
+    arg.replace("yes", "on")
+    arg.replace("no", "off")
+    if arg not in ["on", "yes", "no", "off"]:
+        return await event.reply("I only understand the following: yes/no/on/off")
+    chats = pnotes.find({})
+    if arg == "on":
+      mode = True
+      await event.reply("Evie will now send a message to your chat with a button redirecting to PM, where the user will receive the note.")
+    elif arg == "off":
+      mode = False
+      await event.reply("Evie will now send notes straight to the group.")
+    for c in chats:
+      if event.chat_id == c["id"]:
+        to_check = get_chat(id=event.chat_id)
+        pnotes.update_one(
+                   {
+                       "_id": to_check["_id"],
+                       "id": to_check["id"],
+                       "mode": to_check["mode"],
+                   },
+                   {"$set": {"mode": mode}},
+               )
+        return
+    pnotes.insert_one(
+           {"id": event.chat_id, "mode": mode}
+       )
 
 
 file_help = os.path.basename(__file__)

@@ -29,7 +29,6 @@ SUDO_USERSS = {}
 
 def is_sudo(user_id):
     return user_id in SUDO_USERS
-    return user_id in SUDO_USERSS
 
 
 def check_sudo_status(user_id):
@@ -55,8 +54,7 @@ def set_sudo(user_id, fname):
 
 def rm_sudo(user_id):
     with INSERTION_LOCK:
-        curr = SESSION.query(SUDO).get(user_id)
-        if curr:
+        if curr := SESSION.query(SUDO).get(user_id):
             if user_id in SUDO_USERS:  # sanity check
                 del SUDO_USERS[user_id]
                 del SUDO_USERSS[user_id]

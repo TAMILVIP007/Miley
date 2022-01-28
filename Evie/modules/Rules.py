@@ -20,28 +20,28 @@ def get_chat(id):
 
 @tbot.on(events.NewMessage(pattern=r"[!/]rules"))
 async def rules(event):
- if event.is_private:
-   return
- rules = sql.get_rules(event.chat_id)
- if not rules:
-   return await event.reply("This chat doesn't seem to have had any rules set yet... I wouldn't take that as an invitation though.")
- mode = None
- butto = "Rules"
- peek = rrules.find({})
- for c in peek:
-   if event.chat_id == c["id"]:
-     butto = c["mode"]
- chats = prules.find({})
- for c in chats:
-   if event.chat_id == c["id"]:
-     mode = c["mode"]
- if mode == "on" or mode == None:
-   buttons = Button.url("{}".format(butto), "t.me/MissEvie_Robot?start=rules_{}".format(event.chat_id))
-   text = "Click on the button to see the chat rules!"
-   await event.reply(text, buttons=buttons)
- elif mode == "off":
-   text = f"**The rules for** `{event.chat.title}` **are:**\n\n{rules}"
-   await event.reply(text)
+    if event.is_private:
+      return
+    rules = sql.get_rules(event.chat_id)
+    if not rules:
+      return await event.reply("This chat doesn't seem to have had any rules set yet... I wouldn't take that as an invitation though.")
+    mode = None
+    butto = "Rules"
+    peek = rrules.find({})
+    for c in peek:
+      if event.chat_id == c["id"]:
+        butto = c["mode"]
+    chats = prules.find({})
+    for c in chats:
+      if event.chat_id == c["id"]:
+        mode = c["mode"]
+    if mode == "on" or mode is None:
+        buttons = Button.url("{}".format(butto), "t.me/MissEvie_Robot?start=rules_{}".format(event.chat_id))
+        text = "Click on the button to see the chat rules!"
+        await event.reply(text, buttons=buttons)
+    elif mode == "off":
+      text = f"**The rules for** `{event.chat.title}` **are:**\n\n{rules}"
+      await event.reply(text)
 
 @register(pattern="^/start rules_(.*)")
 async def rr(event):
@@ -57,51 +57,51 @@ async def rr(event):
 
 @register(pattern="^/privaterules ?(.*)")
 async def pr(event):
- if not await is_admin(event, event.sender_id):
-   return await event.reply("Only admins can execute this command!")
- rules = sql.get_rules(event.chat_id)
- if not rules:
-   return await event.reply("You haven't set any rules yet; how about you do that first?")
- arg = event.pattern_match.group(1)
- arg.replace("yes", "on")
- arg.replace("no", "off")
- if not arg:
-    return await no_arg(event)
- if not arg == "on" and not arg == "yes" and not arg == "no" and not arg == "off":
-   return await event.reply("I only understand the following: yes/no/on/off")
- chats = prules.find({})
- if arg == "on":
-   mode = "on"
-   await event.reply("Use of /rules will send the rules to the user's PM.")
- elif arg == "off":
-   mode = "off"
-   await event.reply(f"All /rules commands will send the rules to {event.chat.title}.")
- for c in chats:
-   if event.chat_id == c["id"]:
-     to_check = get_chat(id=event.chat_id)
-     prules.update_one(
-                {
-                    "_id": to_check["_id"],
-                    "id": to_check["id"],
-                    "mode": to_check["mode"],
-                },
-                {"$set": {"mode": mode}},
-            )
-     return
- prules.insert_one(
-        {"id": event.chat_id, "mode": mode}
-    )
+    if not await is_admin(event, event.sender_id):
+      return await event.reply("Only admins can execute this command!")
+    rules = sql.get_rules(event.chat_id)
+    if not rules:
+      return await event.reply("You haven't set any rules yet; how about you do that first?")
+    arg = event.pattern_match.group(1)
+    arg.replace("yes", "on")
+    arg.replace("no", "off")
+    if not arg:
+       return await no_arg(event)
+    if arg not in ["on", "yes", "no", "off"]:
+        return await event.reply("I only understand the following: yes/no/on/off")
+    chats = prules.find({})
+    if arg == "on":
+      mode = "on"
+      await event.reply("Use of /rules will send the rules to the user's PM.")
+    elif arg == "off":
+      mode = "off"
+      await event.reply(f"All /rules commands will send the rules to {event.chat.title}.")
+    for c in chats:
+      if event.chat_id == c["id"]:
+        to_check = get_chat(id=event.chat_id)
+        prules.update_one(
+                   {
+                       "_id": to_check["_id"],
+                       "id": to_check["id"],
+                       "mode": to_check["mode"],
+                   },
+                   {"$set": {"mode": mode}},
+               )
+        return
+    prules.insert_one(
+           {"id": event.chat_id, "mode": mode}
+       )
 
 async def no_arg(event):
- chats = prules.find({})
- mode = None
- for c in chats:
-   if event.chat_id == c["id"]:
-     mode = c["mode"]
- if mode == None or mode == "on":
-   await event.reply("Use of /rules will send the rules to the user's PM.")
- elif mode == "off":
-   await event.reply(f"All /rules commands will send the rules to {event.chat.title}.")
+    chats = prules.find({})
+    mode = None
+    for c in chats:
+      if event.chat_id == c["id"]:
+        mode = c["mode"]
+    if mode is None or mode == "on":
+        await event.reply("Use of /rules will send the rules to the user's PM.")
+    elif mode == "off":
+      await event.reply(f"All /rules commands will send the rules to {event.chat.title}.")
 
 @register(pattern="^/setrulesbutton ?(.*)")
 async def rb(event):
@@ -125,15 +125,15 @@ async def rb(event):
   await event.reply("Updated the rules button name!")
 
 async def no_ara(event):
- chats = rrules.find({})
- mode = None
- for c in chats:
-   if event.chat_id == c["id"]:
-     mode = c["mode"]
- if mode == None:
-   await event.reply("The rules button will be called:\n`Rules`\nTo change the button name, try this command again followed by the new name")
- else:
-   await event.reply(f"The rules button will be called:\n`{mode}`\nTo change the button name, try this command again followed by the new name")
+    chats = rrules.find({})
+    mode = None
+    for c in chats:
+      if event.chat_id == c["id"]:
+        mode = c["mode"]
+    if mode is None:
+        await event.reply("The rules button will be called:\n`Rules`\nTo change the button name, try this command again followed by the new name")
+    else:
+        await event.reply(f"The rules button will be called:\n`{mode}`\nTo change the button name, try this command again followed by the new name")
 
 @register(pattern="^/resetrulesbutton")
 async def rrb(event):
@@ -150,42 +150,39 @@ async def rrb(event):
 
 @register(pattern="^/setrules ?(.*)")
 async def pp(event):
- if not event.is_group:
-   return
- if event.is_group:
-   if not await is_admin(event, event.sender_id):
-     return await event.reply("You need to be an admin to do this!")
-   if not await can_change_info(message=event):
-     return await event.reply("You are missing CanChangeInfo right to do this!")
- input = event.pattern_match.group(1)
- if input.startswith("button"):
-    return
- if not event.reply_to_msg_id:
-   if not input:
-     return await event.reply("You need to give me rules to set!")
- if not event.reply_to_msg_id:
-  rules = input
- else:
-  rules = (await event.get_reply_message()).message
- chat_id = event.chat_id
- sql.set_rules(chat_id, rules)
- await event.reply(f"New rules for {event.chat.title} set successfully!")
+    if not event.is_group:
+      return
+    if not await is_admin(event, event.sender_id):
+      return await event.reply("You need to be an admin to do this!")
+    if not await can_change_info(message=event):
+      return await event.reply("You are missing CanChangeInfo right to do this!")
+    input = event.pattern_match.group(1)
+    if input.startswith("button"):
+       return
+    if not event.reply_to_msg_id and not input:
+        return await event.reply("You need to give me rules to set!")
+    if not event.reply_to_msg_id:
+     rules = input
+    else:
+     rules = (await event.get_reply_message()).message
+    chat_id = event.chat_id
+    sql.set_rules(chat_id, rules)
+    await event.reply(f"New rules for {event.chat.title} set successfully!")
 
 @register(pattern="^/resetrules ?(.*)")
 async def ll(event):
- args = event.pattern_match.group(1)
- if args.startswith("button"):
-   return
- if not event.is_group:
-   return
- if event.is_group:
-   if not await is_admin(event, event.sender_id):
-     return await event.reply("You need to be an admin to do this!")
-   if not await can_change_info(message=event):
-     return await event.reply("You are missing CanChangeInfo right to do this!")
- chat_id = event.chat_id
- sql.set_rules(chat_id, "")
- await event.reply(f"Rules for {event.chat.tite} were successfully cleared!")
+    args = event.pattern_match.group(1)
+    if args.startswith("button"):
+      return
+    if not event.is_group:
+      return
+    if not await is_admin(event, event.sender_id):
+      return await event.reply("You need to be an admin to do this!")
+    if not await can_change_info(message=event):
+      return await event.reply("You are missing CanChangeInfo right to do this!")
+    chat_id = event.chat_id
+    sql.set_rules(chat_id, "")
+    await event.reply(f"Rules for {event.chat.tite} were successfully cleared!")
 
  
 __help__ = """

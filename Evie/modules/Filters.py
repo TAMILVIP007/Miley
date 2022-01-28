@@ -24,52 +24,49 @@ TYPE_DOCUMENT = 2
 
 @register(pattern="^/filter ?(.*)")
 async def save(event):
- if event.is_group:
-      if not await is_admin(event, event.sender_id):
-        await event.reply("You need to be an admin to do this.")
-        return
-      if not await can_change_info(message=event):
-        await event.reply("You are missing the following rights to use this command: CanChangeInfo")
-        return
- else:
+ if not event.is_group:
+  return
+ if not await is_admin(event, event.sender_id):
+   await event.reply("You need to be an admin to do this.")
+   return
+ if not await can_change_info(message=event):
+   await event.reply("You are missing the following rights to use this command: CanChangeInfo")
    return
  if not event.reply_to_msg_id:
-     input = event.pattern_match.group(1)
-     if input:
-       arg = input.split(" ", 1)
-     if len(arg) == 2:
-      name = arg[0]
-      msg = arg[1]
-      snip = {"type": TYPE_TEXT, "text": msg}
-     else:
-      name = arg[0]
-      if not name:
-        await event.reply("You need to give the filter a name!")
-        return
-      await event.reply("You need to give the filter some content!")
-      return
+  if input := event.pattern_match.group(1):
+   arg = input.split(" ", 1)
+  name = arg[0]
+  if len(arg) == 2:
+   msg = arg[1]
+   snip = {"type": TYPE_TEXT, "text": msg}
+  else:
+   if not name:
+     await event.reply("You need to give the filter a name!")
+     return
+   await event.reply("You need to give the filter some content!")
+   return
  else:
-      message = await event.get_reply_message()
-      name = event.pattern_match.group(1)
-      if not name:
-        await event.reply("You need to give the filter a name!")
-        return
-      if not message.media:
-          msg = message.text
-          snip = {"type": TYPE_TEXT, "text": msg}
-      else:
-          snip = {"type": TYPE_TEXT, "text": ""}
-          media = None
-          if isinstance(message.media, types.MessageMediaPhoto):
-             media = utils.get_input_photo(message.media.photo)
-             snip["type"] = TYPE_PHOTO
-          elif isinstance(message.media, types.MessageMediaDocument):
-             media = utils.get_input_document(message.media.document)
-             snip["type"] = TYPE_DOCUMENT
-          if media:
-             snip["id"] = media.id
-             snip["hash"] = media.access_hash
-             snip["fr"] = media.file_reference
+  message = await event.get_reply_message()
+  name = event.pattern_match.group(1)
+  if not name:
+    await event.reply("You need to give the filter a name!")
+    return
+  if not message.media:
+      msg = message.text
+      snip = {"type": TYPE_TEXT, "text": msg}
+  else:
+      snip = {"type": TYPE_TEXT, "text": ""}
+      media = None
+      if isinstance(message.media, types.MessageMediaPhoto):
+         media = utils.get_input_photo(message.media.photo)
+         snip["type"] = TYPE_PHOTO
+      elif isinstance(message.media, types.MessageMediaDocument):
+         media = utils.get_input_document(message.media.document)
+         snip["type"] = TYPE_DOCUMENT
+      if media:
+         snip["id"] = media.id
+         snip["hash"] = media.access_hash
+         snip["fr"] = media.file_reference
  add_filter(
             event.chat_id,
             name,
@@ -83,45 +80,42 @@ async def save(event):
 
 @register(pattern="^/listfilters$")
 async def on_snip_list(event):
-    if event.is_group:
-        pass
-    else:
-        return
-    all_snips = get_all_filters(event.chat_id)
-    OUT_STR = f"**List of filters in {event.chat.title}:**\n"
-    if len(all_snips) > 0:
-        for a_snip in all_snips:
-            OUT_STR += f"- `{a_snip.keyword}`\n"
-    else:
-        OUT_STR = "No Filters. Start Saving using /savefilter"
-    if len(OUT_STR) > 4096:
-        with io.BytesIO(str.encode(OUT_STR)) as out_file:
-            out_file.name = "filters.text"
-            await tbot.send_file(
-                event.chat_id,
-                out_file,
-                force_document=True,
-                allow_cache=False,
-                caption="Available Filters in the Current Chat",
-                reply_to=event,
-            )
-    else:
-        await event.reply(OUT_STR)
+ if not event.is_group:
+  return
+ all_snips = get_all_filters(event.chat_id)
+ OUT_STR = f"**List of filters in {event.chat.title}:**\n"
+ if len(all_snips) > 0:
+     for a_snip in all_snips:
+         OUT_STR += f"- `{a_snip.keyword}`\n"
+ else:
+     OUT_STR = "No Filters. Start Saving using /savefilter"
+ if len(OUT_STR) > 4096:
+     with io.BytesIO(str.encode(OUT_STR)) as out_file:
+         out_file.name = "filters.text"
+         await tbot.send_file(
+             event.chat_id,
+             out_file,
+             force_document=True,
+             allow_cache=False,
+             caption="Available Filters in the Current Chat",
+             reply_to=event,
+         )
+ else:
+     await event.reply(OUT_STR)
 
 @register(pattern="^/stop (.*)")
 async def on_snip_delete(event):
-    if event.is_group:
-      if not await is_admin(event, event.sender_id):
-        await event.reply("You need to be an admin to do this.")
-        return
-      if not await can_change_info(message=event):
-        await event.reply("You are missing the following rights to use this command: CanChangeInfo")
-        return
-    else:
-        return
-    name = event.pattern_match.group(1)
-    remove_filter(event.chat_id, name)
-    await event.reply(f"Filter '**{name}**' has been stopped!")
+ if not event.is_group:
+  return
+ if not await is_admin(event, event.sender_id):
+   await event.reply("You need to be an admin to do this.")
+   return
+ if not await can_change_info(message=event):
+   await event.reply("You are missing the following rights to use this command: CanChangeInfo")
+   return
+ name = event.pattern_match.group(1)
+ remove_filter(event.chat_id, name)
+ await event.reply(f"Filter '**{name}**' has been stopped!")
 
 @register(pattern="^/stopall$")
 async def on_all_snip_delete(event):
@@ -159,67 +153,66 @@ async def start_again(event):
 
 @tbot.on(events.NewMessage(pattern=None))
 async def filter(event):
-  name = event.raw_text
-  if name.startswith("/stop") or name.startswith("/filter"):
-     return
-  if name.startswith("/clear") or name.startswith("/save"):
-     return
-  snips = get_all_filters(event.chat_id)
-  if snips:
-    for snip in snips:
-            pattern = r"( |^|[^\w])" + re.escape(snip.keyword) + r"( |$|[^\w])"
-            if re.search(pattern, name, flags=re.IGNORECASE):
-                if snip.snip_type == TYPE_PHOTO:
-                    media = types.InputPhoto(
-                        int(snip.media_id),
-                        int(snip.media_access_hash),
-                        snip.media_file_reference,
-                    )
-                elif snip.snip_type == TYPE_DOCUMENT:
-                    media = types.InputDocument(
-                        int(snip.media_id),
-                        int(snip.media_access_hash),
-                        snip.media_file_reference,
-                    )
-                else:
-                    media = None
-                event.message.id
-                if event.reply_to_msg_id:
-                    event.reply_to_msg_id
-                filter = ""
-                options = ""
-                butto = None
-                if "|" in snip.reply:
-                    filter, options = snip.reply.split("|")
-                else:
-                    filter = str(snip.reply)
-                try:
-                    filter = filter.strip()
-                    button = options.strip()
-                    if "•" in button:
-                        mbutton = button.split("•")
-                        lbutton = []
-                        for i in mbutton:
-                            params = re.findall(r"\'(.*?)\'", i) or re.findall(
-                                r"\"(.*?)\"", i
-                            )
-                            lbutton.append(params)
-                        longbutton = []
-                        for c in lbutton:
-                            butto = [Button.url(*c)]
-                            longbutton.append(butto)
-                    else:
-                        params = re.findall(r"\'(.*?)\'", button) or re.findall(
-                            r"\"(.*?)\"", button
-                        )
-                        butto = [Button.url(*params)]
-                except BaseException:
-                    filter = filter.strip()
-                    butto = None
-                try:
-                    await event.reply(filter, buttons=longbutton, file=media)
-                except:
-                    await event.reply(filter, buttons=butto, file=media)
+ name = event.raw_text
+ if name.startswith("/stop") or name.startswith("/filter"):
+    return
+ if name.startswith("/clear") or name.startswith("/save"):
+    return
+ if snips := get_all_filters(event.chat_id):
+  for snip in snips:
+          pattern = r"( |^|[^\w])" + re.escape(snip.keyword) + r"( |$|[^\w])"
+          if re.search(pattern, name, flags=re.IGNORECASE):
+              if snip.snip_type == TYPE_PHOTO:
+                  media = types.InputPhoto(
+                      int(snip.media_id),
+                      int(snip.media_access_hash),
+                      snip.media_file_reference,
+                  )
+              elif snip.snip_type == TYPE_DOCUMENT:
+                  media = types.InputDocument(
+                      int(snip.media_id),
+                      int(snip.media_access_hash),
+                      snip.media_file_reference,
+                  )
+              else:
+                  media = None
+              event.message.id
+              if event.reply_to_msg_id:
+                  event.reply_to_msg_id
+              filter = ""
+              options = ""
+              butto = None
+              if "|" in snip.reply:
+                  filter, options = snip.reply.split("|")
+              else:
+                  filter = str(snip.reply)
+              try:
+                  filter = filter.strip()
+                  button = options.strip()
+                  if "•" in button:
+                      mbutton = button.split("•")
+                      lbutton = []
+                      for i in mbutton:
+                          params = re.findall(r"\'(.*?)\'", i) or re.findall(
+                              r"\"(.*?)\"", i
+                          )
+                          lbutton.append(params)
+                      longbutton = []
+                      for c in lbutton:
+                          butto = [Button.url(*c)]
+                          longbutton.append(butto)
+                  else:
+                      params = re.findall(r"\'(.*?)\'", button) or re.findall(
+                          r"\"(.*?)\"", button
+                      )
+                      butto = [Button.url(*params)]
+              except BaseException:
+                  filter = filter.strip()
+                  butto = None
+              try:
+                  await event.reply(filter, buttons=longbutton, file=media)
+              except:
+                  await event.reply(filter, buttons=butto, file=media)
 
 
 file_help = os.path.basename(__file__)

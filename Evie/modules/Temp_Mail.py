@@ -40,7 +40,7 @@ class TempMail(object):
         if digits:
             chars += string.digits
         length = random.randint(min_length, max_length)
-        return "".join(random.choice(chars) for x in range(length))
+        return "".join(random.choice(chars) for _ in range(length))
 
     def get_email_address(self):
         if self.login is None:

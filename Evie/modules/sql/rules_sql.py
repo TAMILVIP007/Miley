@@ -36,11 +36,7 @@ def set_rules(chat_id, rules_text):
 
 
 def get_rules(chat_id):
-    rules = SESSION.query(Rules).get(str(chat_id))
-    ret = ""
-    if rules:
-        ret = rules.rules
-
+    ret = rules.rules if (rules := SESSION.query(Rules).get(str(chat_id))) else ""
     SESSION.close()
     return ret
 
@@ -54,7 +50,6 @@ def num_chats():
 
 def migrate_chat(old_chat_id, new_chat_id):
     with INSERTION_LOCK:
-        chat = SESSION.query(Rules).get(str(old_chat_id))
-        if chat:
+        if chat := SESSION.query(Rules).get(str(old_chat_id)):
             chat.chat_id = str(new_chat_id)
         SESSION.commit()

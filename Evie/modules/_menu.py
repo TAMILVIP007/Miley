@@ -96,8 +96,6 @@ async def reopen_again(event):
                 ],
             ],
         )
-    else:
-        pass
 
 
 @register(pattern="^/help$")
@@ -144,9 +142,7 @@ async def on_plug_in_callback_query_handler(event):
         output = str(CMD_HELP[plugin][1])
         help_string = f"Here is the help for **{emoji}**:\n" + output
 
-    if help_string is None:
-        pass  # stuck on click
-    else:
+    if help_string is not None:
         reply_pop_up_alert = help_string
     try:
         await event.edit(
@@ -172,12 +168,7 @@ def paginate_help(event, page_number, loaded_plugins, prefix):
     number_of_rows = 15
     number_of_cols = 3
 
-    to_check = get_page(id=event.sender_id)
-
-    if not to_check:
-        pagenumber.insert_one({"id": event.sender_id, "page": page_number})
-
-    else:
+    if to_check := get_page(id=event.sender_id):
         pagenumber.update_one(
             {
                 "_id": to_check["_id"],
@@ -187,10 +178,10 @@ def paginate_help(event, page_number, loaded_plugins, prefix):
             {"$set": {"page": page_number}},
         )
 
-    helpable_plugins = []
-    for p in loaded_plugins:
-        if not p.startswith("_"):
-            helpable_plugins.append(p)
+    else:
+        pagenumber.insert_one({"id": event.sender_id, "page": page_number})
+
+    helpable_plugins = [p for p in loaded_plugins if not p.startswith("_")]
     helpable_plugins = sorted(helpable_plugins)
     modules = [
         custom.Button.inline(

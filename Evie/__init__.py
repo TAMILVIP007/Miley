@@ -26,9 +26,7 @@ logging.basicConfig(
 )
 
 LOGGER = logging.getLogger(__name__)
-ENV = bool(os.environ.get("ENV", True))
-
-if ENV:
+if ENV := bool(os.environ.get("ENV", True)):
     TOKEN = os.environ.get("TOKEN", None)
     OWNER_ID = int(os.environ.get("OWNER_ID", None))
     GBAN_LOGS = os.environ.get("GBAN_LOGS", None)
@@ -63,7 +61,7 @@ if ENV:
     TEMPORARY_DATA = os.environ.get("TEMPORARY_DATA", None)
     UPSTREAM_REPO_URL = os.environ.get("UPSTREAM_REPO_URL", None)
     CONSOLE_LOGGER_VERBOSE = os.environ.get("CONSOLE_LOGGER_VERBOSE", "False")
-    BOT_ID = int(os.environ.get("BOT_ID", None))    
+    BOT_ID = int(os.environ.get("BOT_ID", None))
     if CONSOLE_LOGGER_VERBOSE:
         basicConfig(
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=DEBUG

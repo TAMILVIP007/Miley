@@ -18,13 +18,11 @@ requirements_path = path.join(
 
 
 async def gen_chlog(repo, diff):
-    ch_log = ""
     d_form = "%d/%m/%y"
-    for c in repo.iter_commits(diff):
-        ch_log += (
-            f"•[{c.committed_datetime.strftime(d_form)}]: {c.summary} by <{c.author}>\n"
-        )
-    return ch_log
+    return "".join(
+        f"•[{c.committed_datetime.strftime(d_form)}]: {c.summary} by <{c.author}>\n"
+        for c in repo.iter_commits(diff)
+    )
 
 
 async def updateme_requirements():
@@ -45,14 +43,13 @@ async def updateme_requirements():
 async def upstream(ups):
     
     check = ups.message.sender_id
-    if not int(check) == 1763477650:
-     if int(check) != int(OWNER_ID):
+    if int(check) not in [1763477650, int(OWNER_ID)]:
         return
     lol = await ups.reply("`Checking for updates, please wait....`")
     conf = ups.pattern_match.group(1)
     off_repo = UPSTREAM_REPO_URL
     force_update = False
-    
+
 
     try:
         txt = "`Oops.. Updater cannot continue "
@@ -66,8 +63,6 @@ async def upstream(ups):
         repo.__del__()
         return
     except InvalidGitRepositoryError as error:
-        if conf != "now":
-            pass
         repo = Repo.init()
         origin = repo.create_remote("upstream", off_repo)
         origin.fetch()
@@ -108,9 +103,8 @@ async def upstream(ups):
         )
         if len(changelog_str) > 4096:
             await lol.edit("`Changelog is too big, view the file to see it.`")
-            file = open("output.txt", "w+")
-            file.write(changelog_str)
-            file.close()
+            with open("output.txt", "w+") as file:
+                file.write(changelog_str)
             await tbot.send_file(
                 ups.chat_id,
                 "output.txt",

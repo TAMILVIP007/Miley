@@ -40,36 +40,35 @@ async def rights(event):
 
 @register(pattern="^/(fsub|forcesubscribe) ?(.*)")
 async def fs(event):
-  if not await is_admin(event, event.sender_id):
-    return await event.reply("You need to be an admin to do this!")
-  permissions = await tbot.get_permissions(event.chat_id, event.sender_id)
-  if not permissions.is_creator:
-          return await event.reply("❗**Group Creator Required**\nYou have to be the group creator to do that.")
-  if not await is_admin(event, BOT_ID):
-   return await event.reply("I'm not an admin Mind Promoting Me?!")
-  args = event.pattern_match.group(2)
-  channel = args.replace("@", "")
-  if not args:
-    chat_db = sql.fs_settings(event.chat_id)
-    if chat_db:
-      return await event.reply(f"Currently Forsubscribe is ✅Enabled.\nSubscribed to @{chat_db.channel}")
+    if not await is_admin(event, event.sender_id):
+      return await event.reply("You need to be an admin to do this!")
+    permissions = await tbot.get_permissions(event.chat_id, event.sender_id)
+    if not permissions.is_creator:
+            return await event.reply("❗**Group Creator Required**\nYou have to be the group creator to do that.")
+    if not await is_admin(event, BOT_ID):
+     return await event.reply("I'm not an admin Mind Promoting Me?!")
+    args = event.pattern_match.group(2)
+    channel = args.replace("@", "")
+    if not args:
+        if chat_db := sql.fs_settings(event.chat_id):
+            return await event.reply(f"Currently Forsubscribe is ✅Enabled.\nSubscribed to @{chat_db.channel}")
+        else:
+            return await event.reply("Forcesubscribe is currently ❌Disabled.")
+    if args in ["on", "On"]:
+        return await event.reply("❗Please Specify the Channel Username")
+    elif args in ("off", "no", "disable"):
+      sql.disapprove(event.chat_id)
+      await event.reply("❌ **Force Subscribe is Disabled Successfully.**")
     else:
-      return await event.reply("Forcesubscribe is currently ❌Disabled.")
-  if args == "on" or args == "On":
-     return await event.reply("❗Please Specify the Channel Username")
-  elif args in ("off", "no", "disable"):
-    sql.disapprove(event.chat_id)
-    await event.reply("❌ **Force Subscribe is Disabled Successfully.**")
-  else:
-    try:
-      ch_full = await tbot(GetFullChannelRequest(channel=channel))
-    except:
-      return await event.reply("❗**Invalid Channel Username.**")
-    rip = await check_him(channel, BOT_ID)
-    if rip is False:
-      return await event.reply(f"❗**Not an Admin in the Channel**\nI am not an admin in the [channel](https://t.me/{args}). Add me as a admin in order to enable ForceSubscribe.", link_preview=False)
-    sql.add_channel(event.chat_id, str(channel))
-    await event.reply(f"✅ **Force Subscribe is Enabled** to @{channel}.")
+        try:
+          ch_full = await tbot(GetFullChannelRequest(channel=channel))
+        except:
+          return await event.reply("❗**Invalid Channel Username.**")
+        rip = await check_him(channel, BOT_ID)
+        if rip is False:
+          return await event.reply(f"❗**Not an Admin in the Channel**\nI am not an admin in the [channel](https://t.me/{args}). Add me as a admin in order to enable ForceSubscribe.", link_preview=False)
+        sql.add_channel(event.chat_id, str(channel))
+        await event.reply(f"✅ **Force Subscribe is Enabled** to @{channel}.")
   
     
       
@@ -101,25 +100,24 @@ async def f(event):
      
 @tbot.on(events.CallbackQuery(pattern=r"fs(\_(.*))"))
 async def start_again(event):
- tata = event.pattern_match.group(1)
- data = tata.decode()
- user = data.split("_", 1)[1]
- if not event.sender_id == int(user):
-  return await event.answer("You are not the muted user!")
- chat_id = event.chat_id
- chat_db = sql.fs_settings(chat_id)
- if chat_db:
-    channel = chat_db.channel
-    rip = await check_him(channel, event.sender_id)
-    if rip is True:
-     try:
-       await event.delete()
-       await tbot(EditBannedRequest(event.chat_id, int(user), UNMUTE_RIGHTS))
-     except:
-       if not await rights(event):
-         return await tbot.send_message(event.chat_id, "❗ **I am not an admin here.**\nMake me admin with ban user permission")
-    else:
-     await event.answer("Please join the Channel!")
+    tata = event.pattern_match.group(1)
+    data = tata.decode()
+    user = data.split("_", 1)[1]
+    if event.sender_id != int(user):
+        return await event.answer("You are not the muted user!")
+    chat_id = event.chat_id
+    if chat_db := sql.fs_settings(chat_id):
+        channel = chat_db.channel
+        rip = await check_him(channel, event.sender_id)
+        if rip is True:
+         try:
+           await event.delete()
+           await tbot(EditBannedRequest(event.chat_id, int(user), UNMUTE_RIGHTS))
+         except:
+           if not await rights(event):
+             return await tbot.send_message(event.chat_id, "❗ **I am not an admin here.**\nMake me admin with ban user permission")
+        else:
+         await event.answer("Please join the Channel!")
     
        
 file_help = os.path.basename(__file__)
